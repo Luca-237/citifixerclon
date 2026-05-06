@@ -14,6 +14,7 @@ function RootRedirect() {
 
   const { isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
+  console.log("isLoaded:", isLoaded, "isSignedIn:", isSignedIn); // ← agregá esto
 
   if (!isLoaded) return <div>Cargando...</div>;
   if (!isSignedIn) return <Navigate to="/login" replace />;
@@ -42,7 +43,7 @@ function AppRouter() {
     <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route
-        path="/login"
+        path="/login/*"
         element={
           <PublicRoute>
             <Login />
