@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 import { ClerkProvider } from '@clerk/clerk-react'
+import 'leaflet/dist/leaflet.css'
+import './lib/leafletFix'
+
 
 // En Vite, las variables de entorno se llaman así:
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY

@@ -1,3 +1,4 @@
+
 const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
 const verifyTokenAndSetCookie = [
   // 1. Primero valida el token con Clerk
