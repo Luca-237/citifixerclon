@@ -6,10 +6,11 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import "./styles.css";
 
 function Login() {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-azul-oscuro">
       <Card className="w-full max-w-md shadow-sm">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-4 w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
