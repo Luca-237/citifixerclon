@@ -1,31 +1,11 @@
-import { ChevronRight, ClipboardList, Clock, CheckCircle2, XCircle, Plus } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { ChevronRight, Plus } from "lucide-react";
 import IncidentCard, { EmptyState } from "./IncidentCard";
+import IncidentSkeleton from "./IncidentSkeleton";
+import KpiSection from "./KpiSection";
 
-function KpiCard({ label, value, icon: Icon, color }) {
-  return (
-    <Card className="rounded-2xl border-none shadow-sm">
-      <CardContent className="p-4">
-        <Icon size={18} className={`mb-2 ${color}`} />
-        <p className={`text-3xl font-bold ${color}`}>{value}</p>
-        <p className="text-xs text-gray-400 mt-1">{label}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-export default function InicioTab({ user, incidents, onVerTodos, onNuevoReporte }) {
+export default function InicioTab({ user, incidents, loading, onVerTodos, onNuevoReporte }) {
   const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
-
-  const kpis = [
-    { label: "Reportados",  value: incidents.length,                                           icon: ClipboardList, color: "text-[#292D60]" },
-    { label: "En revisión", value: incidents.filter((i) => i.estado === "En revisión").length, icon: Clock,         color: "text-[#3B418F]" },
-    { label: "Resueltos",   value: incidents.filter((i) => i.estado === "Resuelto").length,    icon: CheckCircle2,  color: "text-green-600" },
-    { label: "Rechazados",  value: incidents.filter((i) => i.estado === "Rechazado").length,   icon: XCircle,       color: "text-red-500"   },
-  ];
-
+  const greeting = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
   const recent = incidents.slice(0, 3);
 
   return (
@@ -54,11 +34,7 @@ export default function InicioTab({ user, incidents, onVerTodos, onNuevoReporte 
 
       <section>
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Resumen</p>
-        <div className="grid grid-cols-2 gap-3">
-          {kpis.map((kpi) => (
-            <KpiCard key={kpi.label} {...kpi} />
-          ))}
-        </div>
+        <KpiSection incidents={incidents} loading={loading} />
       </section>
 
       <section>
@@ -73,13 +49,17 @@ export default function InicioTab({ user, incidents, onVerTodos, onNuevoReporte 
             Ver todos <ChevronRight size={13} />
           </button>
         </div>
-        {recent.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col gap-3">
+            <IncidentSkeleton />
+            <IncidentSkeleton />
+            <IncidentSkeleton />
+          </div>
+        ) : recent.length === 0 ? (
           <EmptyState />
         ) : (
           <div className="flex flex-col gap-3">
-            {recent.map((inc) => (
-              <IncidentCard key={inc.id} incident={inc} />
-            ))}
+            {recent.map((inc) => <IncidentCard key={inc._id} incident={inc} />)}
           </div>
         )}
       </section>

@@ -1,21 +1,19 @@
 import { useUser } from "@clerk/clerk-react";
 import { User, Mail, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { STATUS_KEYS } from "@/lib/incidents";
 
 export default function PerfilTab({ incidents }) {
   const { user } = useUser();
 
   const joinedDate = user?.createdAt
-    ? new Date(user.createdAt).toLocaleDateString("es-AR", {
-        year: "numeric",
-        month: "long",
-      })
+    ? new Date(user.createdAt).toLocaleDateString("es-AR", { year: "numeric", month: "long" })
     : null;
 
   const stats = [
-    { label: "Reportados",  value: incidents.length },
-    { label: "Resueltos",   value: incidents.filter((i) => i.estado === "Resuelto").length },
-    { label: "En revisión", value: incidents.filter((i) => i.estado === "En revisión").length },
+    { label: "Reportados", value: incidents.length },
+    { label: "Resueltos",  value: incidents.filter((i) => i.status?.name === STATUS_KEYS.RESOLVED).length },
+    { label: "En proceso", value: incidents.filter((i) => i.status?.name === STATUS_KEYS.IN_PROCESS).length },
   ];
 
   return (
@@ -25,11 +23,7 @@ export default function PerfilTab({ incidents }) {
         <CardContent className="px-5 pb-5">
           <div className="-mt-10 mb-4">
             {user?.imageUrl ? (
-              <img
-                src={user.imageUrl}
-                alt="avatar"
-                className="w-20 h-20 rounded-full border-4 border-white shadow-md"
-              />
+              <img src={user.imageUrl} alt="avatar" className="w-20 h-20 rounded-full border-4 border-white shadow-md" />
             ) : (
               <div className="w-20 h-20 rounded-full border-4 border-white shadow-md bg-[#D3D6FF]/50 flex items-center justify-center">
                 <User size={32} className="text-[#292D60]" />
@@ -39,7 +33,6 @@ export default function PerfilTab({ incidents }) {
           <h2 className="font-bold text-[#292D60] text-xl leading-tight">
             {user?.fullName ?? "Ciudadano"}
           </h2>
-
           <div className="mt-3 flex flex-col gap-2">
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Mail size={14} className="text-gray-400 shrink-0" />
@@ -65,7 +58,6 @@ export default function PerfilTab({ incidents }) {
           </Card>
         ))}
       </div>
-
     </div>
   );
 }

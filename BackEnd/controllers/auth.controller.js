@@ -3,7 +3,7 @@ const { upsertUser } = require('../services/clerk.service.js');
 const registerUser = async (req, res) => {
   try {
      const { email, firstName, lastName } = req.body;
-    const clerkId = req.auth.userId;
+    const clerkId = req.clerkUserId;
 
     const user = await upsertUser({ clerkId, email, firstName, lastName });
      res.status(200).json({ success: true, user });

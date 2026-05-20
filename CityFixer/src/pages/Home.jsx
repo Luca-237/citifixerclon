@@ -7,22 +7,13 @@ import InicioTab from "@/Components/home/InicioTab";
 import ReportesTab from "@/Components/home/ReportesTab";
 import PerfilTab from "@/Components/home/PerfilTab";
 import IncidentModal from "@/Components/map/IncidentModal";
-
-// Reemplazar con fetch a la API cuando esté disponible
-const MOCK_INCIDENTS = [
-  { id: 1, titulo: "Bache profundo en Av. Costanera", categoria: "Vialidad",      fecha: "2026-05-16", estado: "En revisión", direccion: "Av. Costanera 1200"       },
-  { id: 2, titulo: "Luminaria rota frente a plaza",   categoria: "Iluminación",   fecha: "2026-05-14", estado: "Pendiente",   direccion: "25 de Mayo 450"           },
-  { id: 3, titulo: "Árbol caído bloqueando vereda",   categoria: "Espacio verde", fecha: "2026-05-10", estado: "Resuelto",    direccion: "Belgrano 890"             },
-  { id: 4, titulo: "Semáforo sin funcionar",          categoria: "Tránsito",      fecha: "2026-05-08", estado: "Rechazado",   direccion: "Independencia y San Martín"},
-  { id: 5, titulo: "Contenedor desbordado",           categoria: "Higiene",       fecha: "2026-05-05", estado: "Resuelto",    direccion: "Las Heras 340"            },
-];
+import { useIncidents } from "@/hooks/useIncidents";
 
 export default function Home() {
   const { user } = useUser();
   const [activeTab, setActiveTab] = useState("inicio");
   const [reportOpen, setReportOpen] = useState(false);
-
-  const incidents = MOCK_INCIDENTS;
+  const { incidents, loading, refresh } = useIncidents();
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -33,15 +24,16 @@ export default function Home() {
           <InicioTab
             user={user}
             incidents={incidents}
+            loading={loading}
             onVerTodos={() => setActiveTab("reportes")}
             onNuevoReporte={() => setReportOpen(true)}
           />
         )}
-        {activeTab === "reportes" && <ReportesTab incidents={incidents} />}
+        {activeTab === "reportes" && <ReportesTab incidents={incidents} loading={loading} />}
         {activeTab === "perfil"   && <PerfilTab incidents={incidents} />}
       </main>
 
-      <IncidentModal open={reportOpen} onOpenChange={setReportOpen} />
+      <IncidentModal open={reportOpen} onOpenChange={setReportOpen} onCreated={refresh} />
 
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
