@@ -41,7 +41,9 @@ const IncidentForm = ({ onSuccess }) => {
     data.append("description", formData.description.trim());
     data.append("category", formData.category);
     // location como JSON string — el middleware del back debe parsearlo
-    data.append("location", JSON.stringify({ lat: ubicacion.lat, lng: ubicacion.lng }));
+    const street  = [ubicacion.calle, ubicacion.numero].filter(Boolean).join(" ");
+    const address = [street, ubicacion.ciudad, ubicacion.provincia].filter(Boolean).join(", ");
+    data.append("location", JSON.stringify({ lat: ubicacion.lat, lng: ubicacion.lng, address }));
     imagenes.forEach((img) => data.append("photos", img.file));
 
     try {

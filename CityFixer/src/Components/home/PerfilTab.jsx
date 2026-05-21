@@ -3,7 +3,7 @@ import { User, Mail, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { STATUS_KEYS } from "@/lib/incidents";
 
-export default function PerfilTab({ incidents }) {
+export default function PerfilTab({ incidents, loading }) {
   const { user } = useUser();
 
   const joinedDate = user?.createdAt
@@ -49,14 +49,25 @@ export default function PerfilTab({ incidents }) {
       </Card>
 
       <div className="grid grid-cols-3 gap-3">
-        {stats.map((stat) => (
-          <Card key={stat.label} className="rounded-2xl border-none shadow-sm">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-[#292D60]">{stat.value}</p>
-              <p className="text-[10px] text-gray-400 mt-1 leading-tight">{stat.label}</p>
-            </CardContent>
-          </Card>
-        ))}
+        {loading ? (
+          [0, 1, 2].map((i) => (
+            <Card key={i} className="rounded-2xl border-none shadow-sm">
+              <CardContent className="p-4 flex flex-col items-center gap-2">
+                <div className="h-7 w-8 rounded-lg bg-gray-100 animate-pulse" />
+                <div className="h-2.5 w-14 rounded-full bg-gray-100 animate-pulse" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          stats.map((stat) => (
+            <Card key={stat.label} className="rounded-2xl border-none shadow-sm">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-[#292D60]">{stat.value}</p>
+                <p className="text-[10px] text-gray-400 mt-1 leading-tight">{stat.label}</p>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );

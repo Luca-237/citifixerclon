@@ -30,7 +30,7 @@ export default function Home() {
           />
         )}
         {activeTab === "reportes" && <ReportesTab incidents={incidents} loading={loading} />}
-        {activeTab === "perfil"   && <PerfilTab incidents={incidents} />}
+        {activeTab === "perfil"   && <PerfilTab incidents={incidents} loading={loading} />}
       </main>
 
       <IncidentModal open={reportOpen} onOpenChange={setReportOpen} onCreated={refresh} />
