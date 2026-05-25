@@ -2,10 +2,10 @@ const { upsertUser } = require('../services/clerk.service.js');
 
 const registerUser = async (req, res) => {
   try {
-     const { email, firstName, lastName } = req.body;
+     const { email, firstName, lastName, dni } = req.body;
     const clerkId = req.clerkUserId;
 
-    const user = await upsertUser({ clerkId, email, firstName, lastName });
+    const user = await upsertUser({ clerkId, email, firstName, lastName, dni });
      res.status(200).json({ success: true, user });
      console.log(`Paso por El back`)
   } catch (error) {     console.error('Error registrando usuario:', error);
