@@ -3,18 +3,23 @@ import { Loader2 } from "lucide-react";
 
 const DNI_REGEX = /^\d{8}$/;
 
+function stripDni(value) {
+  return value.replace(/\D/g, "");
+}
+
 export default function DniSetupScreen({ onSubmit, loading }) {
   const [dni, setDni] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!DNI_REGEX.test(dni)) {
+    const clean = stripDni(dni);
+    if (!DNI_REGEX.test(clean)) {
       setError("El DNI debe tener exactamente 8 dígitos numéricos.");
       return;
     }
     setError("");
-    onSubmit(dni);
+    onSubmit(clean);
   };
 
   return (
@@ -50,11 +55,10 @@ export default function DniSetupScreen({ onSubmit, loading }) {
                 maxLength={8}
                 value={dni}
                 onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, "");
-                  setDni(val);
+                  setDni(e.target.value);
                   if (error) setError("");
                 }}
-                placeholder="12345678"
+                placeholder="12.345.678"
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-[#3B418F]"
               />
               {error && (
@@ -64,7 +68,7 @@ export default function DniSetupScreen({ onSubmit, loading }) {
 
             <button
               type="submit"
-              disabled={loading || dni.length !== 8}
+              disabled={loading || stripDni(dni).length !== 8}
               className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-[#292D60] text-white text-sm font-semibold disabled:opacity-50 hover:bg-[#2F347A] transition-colors"
             >
               {loading && <Loader2 size={15} className="animate-spin" />}
