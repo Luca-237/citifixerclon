@@ -4,7 +4,7 @@ const mongoConnect = require('../config/mongoConnet');
 const Status = require('../models/status');
 const Category = require('../models/category');
 const Neighborhood = require('../models/neighborhood');
-const barrios = require('./barrios.geojson');
+const barrios = JSON.parse(require('fs').readFileSync('./utils/barrios.geojson', 'utf-8'));
 
 const statuses = [
   { name: 'pendiente',   description: 'El incidente fue reportado y está esperando revisión.' },
