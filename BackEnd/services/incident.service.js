@@ -51,7 +51,7 @@ const validateIncidentData = (data) => {
 // 2. CREACIÓN (Usuario)
 // ==========================================
 
-const createIncident = async (incidentData, userId) => {
+const createIncident = async (incidentData, userId, finalStatusId) => {
   // Primero validar
   const validation = validateIncidentData(incidentData);
   if (!validation.isValid) {
@@ -61,39 +61,7 @@ const createIncident = async (incidentData, userId) => {
     throw error;
   }
 
-  // Después ir a la DB a buscar los ObjectId de los estados
-  const [defaultStatus, dudosoStatus] = await Promise.all([
-    Status.findOne({ name: 'pendiente' }),
-    Status.findOne({ name: 'dudoso' })
-  ]);
-
-  if (!defaultStatus || !dudosoStatus) {
-    const error = new Error('Los estados requeridos no se encontraron en el "registro maestro".');
-    error.status = 500;
-    throw error;
-  }
-
-  // Validar si el usuario tiene 5 o más incidentes en estado dudoso
-  const dudososCount = await Incident.countDocuments({
-    user: userId,
-    status: dudosoStatus._id
-  });
-
-  if (dudososCount >= 5) {
-    const error = new Error('No es posible subir el incidente. Tienes demasiados reportes dudosos pendientes de revisión.');
-    error.status = 200; // Se devuelve 200 intencionalmente para bloquear la subida
-    throw error;
-  }
-
-  // Validación de la IA
-  const evaluacionIA = await verificarCoherenciaIncidente(
-    incidentData.title,
-    incidentData.description
-  );
-
-  // Determinar qué ObjectId de estado se asignará al nuevo incidente
-  const finalStatusId = evaluacionIA.coherente ? defaultStatus._id : dudosoStatus._id;
-
+  // Creación directa utilizando el estado determinado por el middleware
   const newIncident = new Incident({
     title: incidentData.title.trim(),
     description: incidentData.description.trim(),
