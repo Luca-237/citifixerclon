@@ -1,0 +1,62 @@
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
+import ProtectedRoute from "./ProtectedRoute";
+import Login from "../pages/Login";
+import Home from "../pages/Home";
+import AdminDashboard from "../pages/AdminDashboard";
+
+function RootRedirect({ dbRole }) {
+  const { isSignedIn, isLoaded } = useAuth();
+
+  if (!isLoaded) return <div>Cargando...</div>;
+  if (!isSignedIn) return <Navigate to="/login" replace />;
+
+  if (dbRole === "admin" || dbRole === "superAdmin") return <Navigate to="/admin" replace />;
+  return <Navigate to="/home" replace />;
+}
+
+function PublicRoute({ children }) {
+  const { isSignedIn, isLoaded } = useAuth();
+
+  if (!isLoaded) return <div>Cargando...</div>;
+  if (isSignedIn) return <Navigate to="/" replace />;
+
+  return children;
+}
+
+function AppRouter({ dbRole }) {
+  return (
+    <Routes>
+      <Route path="/" element={<RootRedirect dbRole={dbRole} />} />
+      <Route
+        path="/login/*"
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/home"
+        element={
+          <ProtectedRoute dbRole={dbRole} requiredRole="user">
+            <Home />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute dbRole={dbRole} requiredRole="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="/unauthorized" element={<div>Sin permisos</div>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+export default AppRouter;
