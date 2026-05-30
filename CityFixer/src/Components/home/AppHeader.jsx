@@ -19,10 +19,10 @@ export default function AppHeader({ user }) {
     <>
       <UrgenciasModal open={urgenciasOpen} onOpenChange={setUrgenciasOpen} />
 
-      <header className="bg-azul-oscuro px-5 pt-12 pb-5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2.5">
-          <span className="bg-blanquito w-1.5 h-7 rounded-full inline-block" />
-          <h1 className="text-white text-xl font-bold tracking-tight">CityFixer</h1>
+      <header className="bg-azul-oscuro px-6 pt-12 md:pt-4 pb-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <img src="/logoCityFixer.svg" alt="CityFixer" className="h-9 w-auto" />
+          <span className="text-white text-xl font-bold tracking-tight">CityFixer</span>
         </div>
 
         <div className="flex items-center gap-3">
