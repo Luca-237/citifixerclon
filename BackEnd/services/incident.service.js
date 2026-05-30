@@ -9,7 +9,6 @@ const mongoose = require('mongoose');
 const validateIncidentData = (data) => {
   const errors = [];
 
-  // Título
   if (!data.title || typeof data.title !== 'string') {
     errors.push('El título es obligatorio y debe ser un texto.');
   } else if (data.title.trim().length === 0) {
@@ -18,7 +17,6 @@ const validateIncidentData = (data) => {
     errors.push('El título no puede exceder los 100 caracteres.');
   }
 
-  // Descripción
   if (!data.description || typeof data.description !== 'string') {
     errors.push('La descripción es obligatoria y debe ser un texto.');
   } else if (data.description.trim().length === 0) {
@@ -27,19 +25,16 @@ const validateIncidentData = (data) => {
     errors.push('La descripción no puede exceder los 1000 caracteres.');
   }
 
-  // Categoría
   if (!data.category) {
     errors.push('La categoría es obligatoria.');
   } else if (!mongoose.Types.ObjectId.isValid(data.category)) {
     errors.push('La categoría enviada no es válida.');
   }
 
-  // Fotos
   if (!Array.isArray(data.photos) || data.photos.length < 1 || data.photos.length > 3) {
     errors.push('Se requiere entre 1 y 3 fotos.');
   }
 
-  // Ubicación
   if (!data.location?.lat || !data.location?.lng) {
     errors.push('La ubicación es obligatoria.');
   }
@@ -60,7 +55,6 @@ const createIncident = async (incidentData, userId, finalStatusId, aiData, userR
     throw error;
   }
 
-  // Si la IA determinó el estado, el changedBy es el usuario IA del sistema
   const isAI = aiData?.isAI === true;
   const changedBy = isAI ? process.env.AI_USER_ID : userId;
   const source = isAI ? 'ai' : userRole === 'admin' ? 'admin' : 'user';
@@ -87,10 +81,17 @@ const createIncident = async (incidentData, userId, finalStatusId, aiData, userR
 // ==========================================
 
 const getIncidentsByUser = async (userId) => {
-  return await Incident.find({ user: userId })
+  const incidents = await Incident.find({ user: userId })
     .populate('category')
     .populate('status')
     .sort({ createdAt: -1 });
+
+  return incidents.map(incident => {
+    if (incident.status?.name === 'dudoso') {
+      incident.status = { ...incident.status.toObject(), name: 'pendiente' };
+    }
+    return incident;
+  });
 };
 
 const getAllIncidents = async () => {
@@ -120,7 +121,7 @@ const getIncidentHistory = async (incidentId) => {
 // 4. ACTUALIZACIÓN (Solo Admin)
 // ==========================================
 
-const updateIncidentStatus = async (incidentId, newStatusId, adminId) => {
+const updateIncidentStatus = async (incidentId, newStatusId, userId) => {
   if (!mongoose.Types.ObjectId.isValid(newStatusId)) {
     const error = new Error('El estado enviado no es válido.');
     error.status = 400;
@@ -131,7 +132,7 @@ const updateIncidentStatus = async (incidentId, newStatusId, adminId) => {
     incidentId,
     {
       $set: { status: newStatusId },
-      $push: { statusHistory: { status: newStatusId, changedBy: adminId, source: 'admin' } }
+      $push: { statusHistory: { status: newStatusId, changedBy: userId, source: 'admin' } }
     },
     { returnDocument: 'after' }
   );
