@@ -29,7 +29,7 @@ function App() {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       localStorage.setItem(DNI_KEY, dni);
-      setDbRole(data.user?.role ?? "user");
+      setDbRole(data.user?.role?.name ?? "user");
     } catch (error) {
       console.error("Error sincronizando usuario:", error);
     } finally {
