@@ -35,8 +35,8 @@ export default function AdminUsuariosTab() {
     <div className="space-y-6 animate-in fade-in duration-300 p-6 bg-[#F8F9FF] min-h-screen">
       
       {/* --- ENCABEZADO Y BUSCADOR --- */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-5 rounded-[24px] shadow-sm border border-[#D3D6FF]/30">
-        <h2 className="text-xl font-bold text-[#292D60] shrink-0">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-5 rounded-[24px] shadow-sm border border-blanquito/30">
+        <h2 className="text-xl font-bold text-azul-oscuro shrink-0">
           Gestión de Usuarios
         </h2>
         
@@ -44,7 +44,7 @@ export default function AdminUsuariosTab() {
           <input
             type="text"
             placeholder="Buscar nombre o correo..."
-            className="w-full px-4 py-2.5 bg-[#D3D6FF]/40 rounded-xl text-[#292D60] placeholder-[#3B418F]/60 focus:outline-none focus:ring-2 focus:ring-[#3B418F] transition-all border-none"
+            className="w-full px-4 py-2.5 bg-blanquito/40 rounded-xl text-azul-oscuro placeholder-celestito/60 focus:outline-none focus:ring-2 focus:ring-celestito transition-all border-none"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -52,7 +52,7 @@ export default function AdminUsuariosTab() {
       </div>
 
       {/* --- SUB-NAVEGACIÓN DE ROLES (FORMATO PESTAÑA) --- */}
-      <div className="bg-white border-b border-gray-100 px-2 rounded-xl shadow-sm border border-[#D3D6FF]/30 overflow-x-auto">
+      <div className="bg-white border-b border-gray-100 px-2 rounded-xl shadow-sm border border-blanquito/30 overflow-x-auto">
         <div className="flex gap-1 min-w-max">
           {ROLE_TABS.map(({ id, label }) => {
             const active = activeRoleTab === id;
@@ -62,7 +62,7 @@ export default function AdminUsuariosTab() {
                 onClick={() => setActiveRoleTab(id)}
                 className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
                   active
-                    ? "border-[#292D60] text-[#292D60]"
+                    ? "border-azul-oscuro text-azul-oscuro"
                     : "border-transparent text-gray-400 hover:text-gray-600"
                 }`}
               >
@@ -79,38 +79,38 @@ export default function AdminUsuariosTab() {
           filteredUsers.map((user) => (
             <div 
               key={user.id} 
-              className="bg-white p-5 rounded-[24px] shadow-sm flex flex-col gap-3 border border-[#D3D6FF]/30 hover:shadow-md transition-shadow"
+              className="bg-white p-5 rounded-[24px] shadow-sm flex flex-col gap-3 border border-blanquito/30 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#D3D6FF]/50 flex items-center justify-center text-[#292D60] font-bold">
+                  <div className="w-10 h-10 rounded-full bg-blanquito/50 flex items-center justify-center text-azul-oscuro font-bold">
                     {user.name.charAt(0)}
                   </div>
                   <div>
-                    <h3 className="font-bold text-[#292D60]">{user.name}</h3>
-                    <p className="text-sm text-[#3B418F]">{user.email}</p>
+                    <h3 className="font-bold text-azul-oscuro">{user.name}</h3>
+                    <p className="text-sm text-celestito">{user.email}</p>
                   </div>
                 </div>
               </div>
               
-              <div className="flex items-center justify-between mt-2 pt-3 border-t border-[#D3D6FF]/30">
+              <div className="flex items-center justify-between mt-2 pt-3 border-t border-blanquito/30">
                 <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                  user.role === 'superAdmin' ? 'bg-[#292D60] text-white' :
-                  user.role === 'admin' ? 'bg-[#3B418F] text-white' :
-                  'bg-[#D3D6FF] text-[#292D60]'
+                  user.role === 'superAdmin' ? 'bg-azul-oscuro text-white' :
+                  user.role === 'admin' ? 'bg-celestito text-white' :
+                  'bg-blanquito text-azul-oscuro'
                 }`}>
                   {user.role === 'superAdmin' ? 'Super Admin' : 
                    user.role === 'admin' ? 'Admin' : 'Ciudadano'}
                 </span>
                 
-                <button className="text-xs font-bold text-[#3B418F] hover:text-[#292D60] transition-colors">
+                <button className="text-xs font-bold text-celestito hover:text-azul-oscuro transition-colors">
                   Editar Rol
                 </button>
               </div>
             </div>
           ))
         ) : (
-          <div className="col-span-full py-10 text-center text-[#3B418F] font-medium bg-white rounded-[24px] border border-[#D3D6FF]/30">
+          <div className="col-span-full py-10 text-center text-celestito font-medium bg-white rounded-[24px] border border-blanquito/30">
             No se encontraron usuarios.
           </div>
         )}

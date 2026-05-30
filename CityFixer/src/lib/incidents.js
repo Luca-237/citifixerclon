@@ -22,7 +22,7 @@ export const STATUS_LABELS_PUBLIC = {
 
 export const STATUS_STYLES = {
   pendiente:  { bg: 'bg-amber-100',  text: 'text-amber-700' },
-  en_proceso: { bg: 'bg-[#D3D6FF]',  text: 'text-[#2F347A]' },
+  en_proceso: { bg: 'bg-blanquito',  text: 'text-azul' },
   resuelto:   { bg: 'bg-green-100',  text: 'text-green-700' },
   rechazado:  { bg: 'bg-red-100',    text: 'text-red-600'   },
   dudoso:     { bg: 'bg-orange-100', text: 'text-orange-700' },
