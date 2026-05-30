@@ -3,7 +3,39 @@ const Role = require('../models/role');
 const mongoose = require('mongoose');
 
 // ==========================================
-// 1. CAMBIAR ROL
+// 1. CONSULTAS
+// ==========================================
+
+const getUsers = async () => {
+  return await User.find()
+    .populate('role')
+    .sort({ createdAt: -1 });
+};
+
+const getUserById = async (userId) => {
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    const error = new Error('El usuario enviado no es válido.');
+    error.status = 400;
+    throw error;
+  }
+
+  const user = await User.findById(userId).populate('role');
+
+  if (!user) {
+    const error = new Error('Usuario no encontrado.');
+    error.status = 404;
+    throw error;
+  }
+
+  return user;
+};
+
+const getRoles = async () => {
+  return await Role.find().sort({ createdAt: -1 });
+};
+
+// ==========================================
+// 2. CAMBIAR ROL
 // ==========================================
 
 const changeUserRole = async (targetUserId, newRoleId, requesterId) => {
@@ -67,7 +99,7 @@ const changeUserRole = async (targetUserId, newRoleId, requesterId) => {
 };
 
 // ==========================================
-// 2. BANEAR / DESBANEAR
+// 3. BANEAR / DESBANEAR
 // ==========================================
 
 const banUser = async (targetUserId, isBanned, requesterId) => {
@@ -120,6 +152,9 @@ const banUser = async (targetUserId, isBanned, requesterId) => {
 // ==========================================
 
 module.exports = {
+  getUsers,
+  getUserById,
+  getRoles,
   changeUserRole,
   banUser
 };
