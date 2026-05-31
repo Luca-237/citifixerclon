@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/Components/ui/dialog";
+import { Button } from "@/Components/ui/button";
 import { useStatuses } from "@/hooks/useStatuses";
 import { getCategorias, updateIncidentStatus, updateIncidentCategory } from "@/services/api";
 import { STATUS_STYLES, STATUS_LABELS, capitalize } from "@/lib/incidents";

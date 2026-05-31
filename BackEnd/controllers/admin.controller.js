@@ -3,6 +3,25 @@ const { getUsersWithExcessiveDubiousIncidents } = require('../services/incident.
 // ==========================================
 // ALERTAS Y MÉTRICAS
 // ==========================================
+const getAllUsers = async (req, res) => {
+  try {
+    // Buscamos todos los usuarios y seleccionamos solo los campos necesarios para la tabla
+    const users = await User.find()
+      .select('firstName lastName email role isActive isBanned createdAt')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users
+    });
+  } catch (error) {
+    console.error("Error al obtener la lista de todos los usuarios:", error);
+    res.status(500).json({ error: 'Error interno del servidor al obtener la lista de usuarios.' });
+  }
+};
+
+
 const getBannedUsersList = async (req, res) => {
   try {
     // Buscamos directamente por el atributo booleano indexado
@@ -49,5 +68,6 @@ const getFlaggedUsers = async (req, res) => {
 };
 
 module.exports = {
+    getAllUsers,
   getFlaggedUsers
 };

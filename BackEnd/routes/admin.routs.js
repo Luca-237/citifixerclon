@@ -10,13 +10,20 @@ const { verifyRole } = require('../middlewares/verifyRole');
 // Rutas de Administración
 // ==========================================
 
-// Endpoint para listar usuarios con 5 o más reportes dudosos
-// Está protegido: Requiere token válido y que el rol sea 'admin'
+// Endpoint para listar TODOS los usuarios del sistema (Pestaña general de gestión)
 router.get(
-  '/users/flagged',
+  '/users',
   verifyToken,
   verifyRole(['admin']),
-  adminController.getFlaggedUsers
+  adminController.getAllUsers
+);
+
+// Endpoint para listar únicamente los usuarios que se encuentran suspendidos/baneados
+router.get(
+  '/users/banned',
+  verifyToken,
+  verifyRole(['admin']),
+  adminController.getBannedUsersList
 );
 
 module.exports = router;

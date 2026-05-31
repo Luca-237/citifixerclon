@@ -5,12 +5,12 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "@/Components/ui/sheet";
 import { STATUS_STYLES, STATUS_LABELS, capitalize } from "@/lib/incidents";
 import { formatDate } from "./IncidentCard";
 import PhotoGallery from "./PhotoGallery";
 import LocationPanel from "./LocationPanel";
-import SectionLabel from "@/components/ui/SectionLabel";
+import SectionLabel from "@/Components/ui/SectionLabel";
 
 export default function IncidentDetailSheet({
   incident,

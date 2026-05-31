@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MapPin, AlertTriangle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/Components/ui/card";
 import { STATUS_STYLES, STATUS_LABELS, capitalize } from "@/lib/incidents";
 import IncidentDetailSheet from "./IncidentDetailSheet";
 

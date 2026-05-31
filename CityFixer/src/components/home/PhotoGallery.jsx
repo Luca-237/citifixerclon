@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ImageOff } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/Components/ui/dialog";
 
 export default function PhotoGallery({ photos }) {
   const [lightbox, setLightbox] = useState(null);

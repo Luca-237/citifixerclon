@@ -1,43 +1,78 @@
+const Incident = require('../models/incident');
 const Status = require('../models/status');
+const User = require('../models/user');
 const { analizarIncidenteIA } = require('../services/openai.service');
+
+const calcularDistanciaMetros = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3; const rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad; const dLon = (lon2 - lon1) * rad;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
 
 const aiIncidentValidation = async (req, res, next) => {
   try {
-    const { title, description } = req.body;
+    const userId = req.dbUser._id;
+    const { title, description, location } = req.body;
 
-    const [pendienteStatus, dudosoStatus, rechazadoStatus] = await Promise.all([
-      Status.findOne({ name: 'pendiente' }),
-      Status.findOne({ name: 'dudoso' }),
-      Status.findOne({ name: 'rechazado' })
+    const [pendienteStatus, dudosoStatus, rechazadoStatus, enProcesoStatus] = await Promise.all([
+      Status.findOne({ name: 'pendiente' }), Status.findOne({ name: 'dudoso' }),
+      Status.findOne({ name: 'rechazado' }), Status.findOne({ name: 'en_proceso' })
     ]);
 
-    if (!pendienteStatus || !dudosoStatus || !rechazadoStatus) {
-      return res.status(500).json({ error: 'Faltan estados requeridos en el "registro maestro".' });
+    if (!pendienteStatus || !dudosoStatus || !rechazadoStatus) return res.status(500).json({ error: 'Faltan estados requeridos.' });
+
+    const dudososCount = await Incident.countDocuments({ user: userId, status: dudosoStatus._id });
+    if (dudososCount >= 5) {
+      await User.findByIdAndUpdate(userId, { $set: { isBanned: true } });
+      return res.status(200).json({ success: false, message: 'Cuenta suspendida por acumular reportes dudosos.' });
+    } else {
+      await User.findByIdAndUpdate(userId, { $set: { isBanned: false } });
     }
 
-    const evaluacionIA = await analizarIncidenteIA(title, description);
+    let incidentesCercanos = [];
+    if (location && location.lat && location.lng) {
+      const statusActivos = [pendienteStatus._id];
+      if (enProcesoStatus) statusActivos.push(enProcesoStatus._id);
+
+      const activos = await Incident.find({ status: { $in: statusActivos } }).select('_id title description location');
+
+      incidentesCercanos = activos.filter(inc => {
+        if (!inc.location?.lat || !inc.location?.lng) return false;
+        return calcularDistanciaMetros(location.lat, location.lng, inc.location.lat, inc.location.lng) <= 20;
+      }).map(inc => ({ _id: inc._id, title: inc.title, description: inc.description }));
+    }
+
+    const evaluacionIA = await analizarIncidenteIA(title, description, incidentesCercanos);
+
+    // NUEVA LÓGICA: En vez de bloquear, asignamos los booleanos y el estado
+    let isEmergency = false;
+    let finalStatusId = pendienteStatus._id;
 
     if (evaluacionIA.estadoSugerido === 'rechazado') {
-      return res.status(200).json({
-        success: false,
-        isEmergency: true,
-        message: 'Este reporte describe una situación de emergencia médica o de seguridad vital. Por favor, comunícate de inmediato con el 100 (Bomberos), 101 (Policía) o 107 (Ambulancia). La plataforma no procesa urgencias en tiempo real.',
-        justificacion: evaluacionIA.justificacion
-      });
+      isEmergency = true;
+      finalStatusId = rechazadoStatus._id;
+    } else if (evaluacionIA.estadoSugerido === 'dudoso') {
+      finalStatusId = dudosoStatus._id;
     }
 
-    req.finalStatusId = evaluacionIA.estadoSugerido === 'dudoso' ? dudosoStatus._id : pendienteStatus._id;
-
+    req.finalStatusId = finalStatusId;
+    
+    // Empaquetar TODOS los datos para que el servicio los guarde
     req.aiData = {
-      prioridad: evaluacionIA.prioridadSugerida,
+      prioridad: evaluacionIA.prioridadSugerida || 1,
       categoriaSugerida: evaluacionIA.categoriaSugerida,
-      justificacion: evaluacionIA.justificacion
+      justificacion: evaluacionIA.justificacion,
+      esDuplicado: evaluacionIA.esDuplicado,
+      idIncidenteOriginal: evaluacionIA.idIncidenteOriginal,
+      isEmergency: isEmergency // <-- Se lo pasamos al servicio
     };
 
     next();
   } catch (error) {
-    console.error('Error en aiIncidentValidation:', error);
-    return res.status(500).json({ error: 'Error interno en el servidor al validar el incidente con Inteligencia Artificial.' });
+    console.error("Error validación IA:", error);
+    return res.status(500).json({ error: 'Error en servidor al validar incidente.' });
   }
 };
 

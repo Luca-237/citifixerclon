@@ -1,17 +1,22 @@
-const {
-  createIncident,
-  getIncidentsByUser,
-  getAllIncidents,
-  getIncidentHistory,
-  updateIncidentStatus,
-  updateIncidentCategory
-} = require('../services/incident.service');
+const { createIncident, getIncidentsByUser, getAllIncidents, updateIncidentStatus, updateIncidentCategory } = require('../services/incident.service');
 
 const create = async (req, res) => {
   try {
     const incident = await createIncident(req.body, req.dbUser._id, req.finalStatusId, req.aiData, req.dbUser.role);
+    
+    // Si la IA lo catalogó como emergencia, enviamos la alerta al front
+    if (req.aiData.isEmergency) {
+       return res.status(201).json({ 
+         success: true, 
+         incident, 
+         isEmergency: true,
+         message: 'Atención: Tu reporte fue registrado en el municipio, pero parece ser una emergencia vital. La plataforma no despacha servicios de urgencia. Por favor, comunícate de inmediato con el 100 (Bomberos), 101 (Policía) o 107 (Ambulancia).'
+       });
+    }
+
     res.status(201).json({ success: true, incident });
   } catch (error) {
+    console.error("🔴 Error interno en el controlador al crear incidente:", error); 
     if (error.status === 400) {
       return res.status(400).json({ error: error.message, details: error.details });
     }
