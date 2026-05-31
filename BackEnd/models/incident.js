@@ -88,7 +88,10 @@ const incidentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Incident', 
     default: null 
-  }
+  },
+  is_emergency: {
+    type: Boolean,
+    default: false},
 }, {
   timestamps: true
 });

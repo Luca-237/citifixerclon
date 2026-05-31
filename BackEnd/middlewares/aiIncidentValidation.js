@@ -23,7 +23,6 @@ const aiIncidentValidation = async (req, res, next) => {
 
     if (!pendienteStatus || !dudosoStatus || !rechazadoStatus) return res.status(500).json({ error: 'Faltan estados requeridos.' });
 
-    // Validar límite de dudosos...
     const dudososCount = await Incident.countDocuments({ user: userId, status: dudosoStatus._id });
     if (dudososCount >= 5) {
       await User.findByIdAndUpdate(userId, { $set: { isBanned: true } });
@@ -32,7 +31,6 @@ const aiIncidentValidation = async (req, res, next) => {
       await User.findByIdAndUpdate(userId, { $set: { isBanned: false } });
     }
 
-    // Buscar incidentes a menos de 20 metros, INCLUYENDO EL _id
     let incidentesCercanos = [];
     if (location && location.lat && location.lng) {
       const statusActivos = [pendienteStatus._id];
@@ -48,22 +46,27 @@ const aiIncidentValidation = async (req, res, next) => {
 
     const evaluacionIA = await analizarIncidenteIA(title, description, incidentesCercanos);
 
+    // NUEVA LÓGICA: En vez de bloquear, asignamos los booleanos y el estado
+    let isEmergency = false;
+    let finalStatusId = pendienteStatus._id;
+
     if (evaluacionIA.estadoSugerido === 'rechazado') {
-      return res.status(200).json({
-        success: false, isEmergency: true,
-        message: 'Emergencia detectada. Llama al 100, 101 o 107.', justificacion: evaluacionIA.justificacion
-      });
+      isEmergency = true;
+      finalStatusId = rechazadoStatus._id;
+    } else if (evaluacionIA.estadoSugerido === 'dudoso') {
+      finalStatusId = dudosoStatus._id;
     }
 
-    req.finalStatusId = evaluacionIA.estadoSugerido === 'dudoso' ? dudosoStatus._id : pendienteStatus._id;
+    req.finalStatusId = finalStatusId;
     
-    // Empaquetar TODOS los datos para que el servicio los procese
+    // Empaquetar TODOS los datos para que el servicio los guarde
     req.aiData = {
       prioridad: evaluacionIA.prioridadSugerida || 1,
       categoriaSugerida: evaluacionIA.categoriaSugerida,
       justificacion: evaluacionIA.justificacion,
       esDuplicado: evaluacionIA.esDuplicado,
-      idIncidenteOriginal: evaluacionIA.idIncidenteOriginal
+      idIncidenteOriginal: evaluacionIA.idIncidenteOriginal,
+      isEmergency: isEmergency // <-- Se lo pasamos al servicio
     };
 
     next();

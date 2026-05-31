@@ -68,7 +68,7 @@ const createIncident = async (incidentData, userId, finalStatusId, aiData, userR
   }
 
   // 3. Creación del Incidente
-  const newIncident = new Incident({
+const newIncident = new Incident({
     title: incidentData.title.trim(),
     description: incidentData.description.trim(),
     status: finalStatusId,
@@ -80,7 +80,8 @@ const createIncident = async (incidentData, userId, finalStatusId, aiData, userR
     ai_justification: aiData?.justificacion || 'No justificado',
     ai_suggested_category: aiData?.categoriaSugerida || 'No sugerida',
     is_duplicate: aiData?.esDuplicado || false,
-    statusHistory: [{ status: finalStatusId, changedBy, source }] // <-- Tu agregado intacto
+    is_emergency: aiData?.isEmergency || false, // <-- SE GUARDA EN LA DB
+    statusHistory: [{ status: finalStatusId, changedBy, source }]
   });
 
   // Solo inyectamos el atributo relacional si obtuvimos un ObjectId válido
