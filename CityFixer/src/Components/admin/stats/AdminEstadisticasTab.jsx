@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/Components/ui/card";
 import { STATUS_STYLES, STATUS_LABELS, STATUS_KEYS, capitalize } from "@/lib/incidents";
 
 function KpiCard({ label, value, loading, style }) {

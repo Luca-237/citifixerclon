@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Loader2, Tag, ToggleLeft, ToggleRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/Components/ui/card";
 import { toggleCategory } from "@/services/api";
 import { capitalize } from "@/lib/incidents";
 

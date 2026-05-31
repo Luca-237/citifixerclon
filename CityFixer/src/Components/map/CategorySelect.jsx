@@ -7,7 +7,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/Components/ui/select";
 
 export default function CategorySelect({ onValueChange }) {
   const [categorias, setCategorias] = useState([]);

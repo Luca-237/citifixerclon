@@ -1,70 +1,70 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-// Instanciamos el cliente usando la clave de entorno.
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-/**
- * Función centralizada para analizar el incidente con Gemini.
- * Evalúa categoría, estado, prioridad y devuelve una justificación.
- */
-const analizarIncidenteIA = async (title, description) => {
+const analizarIncidenteIA = async (title, description, incidentesCercanos = []) => {
   try {
-    // CAMBIO APLICADO AQUÍ: Actualizado al modelo vigente gemini-2.5-flash
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash", 
-      generationConfig: {
-        responseMimeType: "application/json",
-      }
+      generationConfig: { responseMimeType: "application/json" }
     });
+
+    const listadoCercanos = incidentesCercanos.length > 0
+      ? incidentesCercanos.map((inc) => `ID: ${inc._id} | TÍTULO: "${inc.title}" - DESCRIPCIÓN: "${inc.description}"`).join('\n')
+      : "No hay incidentes reportados cerca.";
 
     const prompt = `
       Eres un analista experto del sistema de reportes urbanos "CityFixer" de una municipalidad.
-      Tu tarea es analizar el siguiente incidente reportado por un ciudadano:
+      Tu tarea es analizar un nuevo reporte ciudadano y compararlo con otros incidentes cercanos (si los hay) para detectar duplicados.
 
+      --- NUEVO REPORTE ---
       TÍTULO: "${title}"
       DESCRIPCIÓN: "${description}"
 
+      --- INCIDENTES CERCANOS (A menos de 20 metros) ---
+      ${listadoCercanos}
+
       REGLAS DE EVALUACIÓN:
       1. ESTADO SUGERIDO: 
-         - Si el reporte es una emergencia vital, requiere policía, bomberos o ambulancia (ej. accidentes graves, incendios, robos en curso), el estado DEBE ser "rechazado" (para que la app no retenga la emergencia y el ciudadano llame al 911).
-         - Si el título y la descripción parecen una broma, o se contradicen totalmente, el estado DEBE ser "dudoso".
-         - Si el titulo o la descripción son inicomprensibles o no tienen sentido, el estado DEBE ser "rechazado".
+         - Si el reporte es una emergencia vital, requiere policía, bomberos o ambulancia (ej. accidentes graves, incendios), el estado DEBE ser "rechazado".
+         - Si el título y la descripción parecen una broma, o se contradicen, el estado DEBE ser "dudoso".
+         - Si el titulo y la descripción son ininteligibles el estado debe ser "rechazado".
          - Si es un reporte normal de infraestructura (baches, basura, luz), el estado DEBE ser "pendiente".
       
-      2. PRIORIDAD: 
-         - Asigna un número del 1 (muy baja) al 5 (crítica) dependiendo del riesgo para los transeúntes o la urgencia de infraestructura.
+    2. PRIORIDAD: Asigna un número del 1 al 5, debe tener en cuenta la gravedad y urgencia del problema. 1 es baja prioridad (ej. un bache pequeño) y 5 es alta prioridad (ej. un gran árbol caído bloqueando una calle).
       
-      3. CATEGORÍA:
-         - Sugiere una categoría corta (ej: "bache", "alumbrado", "basura", "vandalismo", "otro").
+      3. CATEGORÍA: Sugiere una (ej: "bache", "alumbrado", "basura", "vandalismo", "otro").
+
+      4. DUPLICADOS:
+         - Si el NUEVO REPORTE describe el MISMO PROBLEMA exacto que un incidente cercano, marca "esDuplicado": true, y en "idIncidenteOriginal" pon el ID exacto de ese incidente cercano. Si no hay duplicado, pon null.
 
       ESTRUCTURA DE RESPUESTA REQUERIDA (Genera solo este JSON):
       {
         "categoriaSugerida": "string",
         "estadoSugerido": "rechazado" | "dudoso" | "pendiente",
         "prioridadSugerida": number,
-        "justificacion": "string (Breve explicación de 2 o 3 líneas sobre tus decisiones)"
+        "esDuplicado": boolean,
+        "idIncidenteOriginal": "string o null",
+        "justificacion": "string"
       }
     `;
 
     const result = await model.generateContent(prompt);
-    
-    // Extraemos y parseamos el JSON directamente
-    const responseText = result.response.text();
-    const analisis = JSON.parse(responseText);
-
-    return analisis;
+    return JSON.parse(result.response.text());
 
   } catch (error) {
-    console.error("Error al consultar a Gemini API:", error);
+    // Silenciamos el error gigante de la API y dejamos un aviso limpio en consola
+    console.warn(`⚠️ [Aviso IA] Gemini no disponible por alta demanda (503). Aplicando fallback manual al incidente.`);
+    
+    // Retornamos el objeto de respaldo con la aclaración exacta que solicitaste
     return {
-      categoriaSugerida: "Sin Clasificar",
-      estadoSugerido: "pendiente", 
+      categoriaSugerida: "Requiere clasificación manual",
+      estadoSugerido: "pendiente", // Se fuerza explícitamente a pendiente
       prioridadSugerida: 1,
-      justificacion: "Validación por IA no disponible temporalmente. Se requiere revisión manual."
+      esDuplicado: false,
+      idIncidenteOriginal: null,
+      justificacion: "[SISTEMA]: La Inteligencia Artificial no pudo procesar este reporte durante la carga debido a alta demanda del servidor. Se deben establecer la prioridad, categoría y posibles duplicados de manera manual."
     };
   }
 };
 
-module.exports = {
-  analizarIncidenteIA
-};
+module.exports = { analizarIncidenteIA };

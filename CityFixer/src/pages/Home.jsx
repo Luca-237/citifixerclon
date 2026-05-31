@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useUser } from "@clerk/clerk-react";
 
-import AppHeader from "@/components/home/AppHeader";
-import BottomNav from "@/components/home/BottomNav";
-import InicioTab from "@/components/home/InicioTab";
-import ReportesTab from "@/components/home/ReportesTab";
-import PerfilTab from "@/components/home/PerfilTab";
-import IncidentModal from "@/components/map/IncidentModal";
+import AppHeader from "@/Components/home/AppHeader";
+import BottomNav from "@/Components/home/BottomNav";
+import InicioTab from "@/Components/home/InicioTab";
+import ReportesTab from "@/Components/home/ReportesTab";
+import PerfilTab from "@/Components/home/PerfilTab";
+import IncidentModal from "@/Components/map/IncidentModal";
 import { useIncidents } from "@/hooks/useIncidents";
 
 export default function Home() {

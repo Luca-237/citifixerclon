@@ -70,19 +70,24 @@ const incidentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  priority: {
+ priority: {
     type: Number,
     min: 1,
     max: 5,
     default: 1
   },
-  ai_justification: {
-    type: String,
-    trim: true
+  ai_justification: { type: String, trim: true },
+  ai_suggested_category: { type: String, trim: true },
+  
+  // --- NUEVOS CAMPOS DE DUPLICIDAD ---
+  is_duplicate: { 
+    type: Boolean, 
+    default: false 
   },
-  ai_suggested_category: {
-    type: String,
-    trim: true
+  original_incident: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Incident', 
+    default: null 
   }
 }, {
   timestamps: true

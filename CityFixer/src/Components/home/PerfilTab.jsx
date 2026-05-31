@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/clerk-react";
 import { User, Mail, Calendar } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/Components/ui/card";
 import { STATUS_KEYS } from "@/lib/incidents";
 
 export default function PerfilTab({ incidents, loading }) {

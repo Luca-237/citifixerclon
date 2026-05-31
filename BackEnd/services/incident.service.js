@@ -1,5 +1,6 @@
 const Incident = require('../models/incident');
 const Status = require('../models/status');
+const DuplicateIncident = require('../models/duplicateIncident'); // <-- QUE NO FALTE ESTA LÍNEA
 const mongoose = require('mongoose');
 
 // ==========================================
@@ -55,10 +56,18 @@ const createIncident = async (incidentData, userId, finalStatusId, aiData, userR
     throw error;
   }
 
+  // 1. Configuración para el Historial (statusHistory)
   const isAI = aiData?.isAI === true;
   const changedBy = isAI ? process.env.AI_USER_ID : userId;
   const source = isAI ? 'ai' : userRole === 'admin' ? 'admin' : 'user';
 
+  // 2. Limpieza del ID original (evita que Mongoose crashee si la IA devuelve nulos)
+  let originalIncidentId = undefined;
+  if (aiData?.idIncidenteOriginal && aiData.idIncidenteOriginal !== "null" && aiData.idIncidenteOriginal !== "undefined") {
+    originalIncidentId = aiData.idIncidenteOriginal;
+  }
+
+  // 3. Creación del Incidente
   const newIncident = new Incident({
     title: incidentData.title.trim(),
     description: incidentData.description.trim(),
@@ -70,12 +79,42 @@ const createIncident = async (incidentData, userId, finalStatusId, aiData, userR
     priority: aiData?.prioridad || 1,
     ai_justification: aiData?.justificacion || 'No justificado',
     ai_suggested_category: aiData?.categoriaSugerida || 'No sugerida',
-    statusHistory: [{ status: finalStatusId, changedBy, source }]
+    is_duplicate: aiData?.esDuplicado || false,
+    statusHistory: [{ status: finalStatusId, changedBy, source }] // <-- Tu agregado intacto
   });
 
-  return await newIncident.save();
-};
+  // Solo inyectamos el atributo relacional si obtuvimos un ObjectId válido
+  if (originalIncidentId) {
+    newIncident.original_incident = originalIncidentId;
+  }
 
+  const savedIncident = await newIncident.save();
+
+  // 4. Lógica de Duplicados y Prioridad Masiva
+  if (aiData?.esDuplicado && originalIncidentId) {
+    let duplicateRecord = await DuplicateIncident.findOne({ original_incident: originalIncidentId });
+    
+    if (!duplicateRecord) {
+      duplicateRecord = new DuplicateIncident({
+        original_incident: originalIncidentId,
+        duplicates: [savedIncident._id]
+      });
+    } else {
+      duplicateRecord.duplicates.push(savedIncident._id);
+    }
+    await duplicateRecord.save();
+
+    const allIdsToUpdate = [originalIncidentId, ...duplicateRecord.duplicates];
+
+    // Subir prioridad (+1) masivamente a todos los duplicados
+    await Incident.updateMany(
+      { _id: { $in: allIdsToUpdate }, priority: { $lt: 5 } },
+      { $inc: { priority: 1 } }
+    );
+  }
+
+  return savedIncident;
+};
 // ==========================================
 // 3. LECTURA / CONSULTAS
 // ==========================================

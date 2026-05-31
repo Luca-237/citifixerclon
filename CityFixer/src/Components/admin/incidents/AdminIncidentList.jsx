@@ -1,6 +1,6 @@
 import AdminIncidentCard from "./AdminIncidentCard";
-import IncidentSkeleton from "@/components/home/IncidentSkeleton";
-import { EmptyState } from "@/components/home/IncidentCard";
+import IncidentSkeleton from "@/Components/home/IncidentSkeleton";
+import { EmptyState } from "@/Components/home/IncidentCard";
 
 export default function AdminIncidentList({ incidents, loading, onUpdated }) {
   if (loading) {

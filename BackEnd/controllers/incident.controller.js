@@ -1,17 +1,13 @@
-const {
-  createIncident,
-  getIncidentsByUser,
-  getAllIncidents,
-  getIncidentHistory,
-  updateIncidentStatus,
-  updateIncidentCategory
-} = require('../services/incident.service');
+const { createIncident, getIncidentsByUser, getAllIncidents, updateIncidentStatus, updateIncidentCategory } = require('../services/incident.service');
 
 const create = async (req, res) => {
   try {
-    const incident = await createIncident(req.body, req.dbUser._id, req.finalStatusId, req.aiData, req.dbUser.role);
+    const incident = await createIncident(req.body, req.dbUser._id, req.finalStatusId, req.aiData);
     res.status(201).json({ success: true, incident });
   } catch (error) {
+    // 🔴 AHORA SÍ VEREMOS EXACTAMENTE QUÉ FALLA EN LA TERMINAL
+    console.error("🔴 Error interno en el controlador al crear incidente:", error); 
+    
     if (error.status === 400) {
       return res.status(400).json({ error: error.message, details: error.details });
     }

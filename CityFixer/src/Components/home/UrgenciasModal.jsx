@@ -1,5 +1,5 @@
 import { Phone, TriangleAlert } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/Components/ui/dialog";
 
 const EMERGENCIAS = [
   { numero: "911", nombre: "Policía / Emergencias", descripcion: "Emergencias generales", color: "bg-red-50 border-red-200 text-red-600" },

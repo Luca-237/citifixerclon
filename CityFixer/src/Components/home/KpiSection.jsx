@@ -1,5 +1,5 @@
 import { ClipboardList, Clock, CheckCircle2, XCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/Components/ui/card";
 import { STATUS_KEYS } from "@/lib/incidents";
 
 function KpiCard({ label, value, icon: Icon, color }) {
