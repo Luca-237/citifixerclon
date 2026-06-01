@@ -4,7 +4,7 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const { verifyRole } = require('../middlewares/verifyRole');
 const { aiIncidentValidation } = require('../middlewares/aiIncidentValidation');
 const middleClaudinary = require('../middlewares/claudinary');
-const { create, getMyIncidents, getAll, getHistory, updateStatus, updateCategory } = require('../controllers/incident.controller');
+const { create, getMyIncidents, getAll, getHistory, updateStatus, updateCategory, updatePriority, cancel } = require('../controllers/incident.controller');
 const { validateUserReputation } = require('../middlewares/validateUserReputation');
 
 router.post('/', authMiddleware, verifyRole('user', 'admin', 'superAdmin'), validateUserReputation,  middleClaudinary,aiIncidentValidation, create);
@@ -13,5 +13,7 @@ router.get('/my-incidents', authMiddleware, verifyRole('user', 'admin', 'superAd
 router.get('/:id/history', authMiddleware, verifyRole('user', 'admin', 'superAdmin'), getHistory);
 router.patch('/:id/status',   authMiddleware, verifyRole('admin', 'superAdmin'), updateStatus);
 router.patch('/:id/category', authMiddleware, verifyRole('admin', 'superAdmin'), updateCategory);
+router.patch('/:id/priority', authMiddleware, verifyRole('admin', 'superAdmin'), updatePriority);
+router.patch('/:id/cancel', authMiddleware, verifyRole('user', 'admin', 'superAdmin'), cancel);
 
 module.exports = router;

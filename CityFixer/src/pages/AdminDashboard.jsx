@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useAllIncidents } from "@/hooks/useAllIncidents";
-import AdminHeader from "@/Components/admin/AdminHeader";
-import AdminTabBar from "@/Components/admin/AdminTabBar";
-import AdminIncidentesTab from "@/Components/admin/incidents/AdminIncidentesTab";
-import AdminEstadisticasTab from "@/Components/admin/stats/AdminEstadisticasTab";
-import AdminCategoriasTab from "@/Components/admin/categories/AdminCategoriasTab";
-import IncidentModal from "@/Components/map/IncidentModal";
-import AdminUsuariosTab from "@/Components/admin/usuarios/AdminUsuariosTab";
+import AdminHeader from "@/components/admin/AdminHeader";
+import AdminTabBar from "@/components/admin/AdminTabBar";
+import AdminIncidentesTab from "@/components/admin/incidents/AdminIncidentesTab";
+import AdminEstadisticasTab from "@/components/admin/stats/AdminEstadisticasTab";
+import AdminCategoriasTab from "@/components/admin/categories/AdminCategoriasTab";
+import IncidentModal from "@/components/map/IncidentModal";
+import AdminUsuariosTab from "@/components/admin/usuarios/AdminUsuariosTab";
 
 export default function AdminDashboard({ dbRole }) {
   const [activeTab, setActiveTab] = useState("incidentes");

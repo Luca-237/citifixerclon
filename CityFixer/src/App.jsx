@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import AppRouter from "./routes/AppRouter";
-import DniSetupScreen from "./Components/auth/DniSetupScreen";
+import DniSetupScreen from "./components/auth/DniSetupScreen";
 import api from "./services/api";
 
 const DNI_KEY = "cityfixer_dni";

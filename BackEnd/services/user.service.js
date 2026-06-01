@@ -7,7 +7,9 @@ const mongoose = require('mongoose');
 // ==========================================
 
 const getUsers = async () => {
-  return await User.find()
+  const aiRole = await Role.findOne({ name: 'ai' });
+  const excludeIds = aiRole ? [aiRole._id] : [];
+  return await User.find({ role: { $nin: excludeIds } })
     .populate('role')
     .sort({ createdAt: -1 });
 };

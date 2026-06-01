@@ -208,6 +208,76 @@ const updateIncidentCategory = async (incidentId, newCategory) => {
   return updated;
 };
 
+const updateIncidentPriority = async (incidentId, priority) => {
+  const value = Number(priority);
+  if (!Number.isInteger(value) || value < 1 || value > 5) {
+    const error = new Error('La prioridad debe ser un número entero entre 1 y 5.');
+    error.status = 400;
+    throw error;
+  }
+
+  const updated = await Incident.findByIdAndUpdate(
+    incidentId,
+    { $set: { priority: value } },
+    { returnDocument: 'after' }
+  );
+
+  if (!updated) {
+    const error = new Error('Incidente no encontrado');
+    error.status = 404;
+    throw error;
+  }
+
+  return updated;
+};
+// ==========================================
+// 5. CANCELACIÓN (Solo el usuario dueño)
+// ==========================================
+
+const CANCELLABLE_STATUSES = ['pendiente', 'dudoso', 'aceptado'];
+
+const cancelIncident = async (incidentId, userId) => {
+  const incident = await Incident.findById(incidentId)
+    .populate('status');
+
+  if (!incident) {
+    const error = new Error('Incidente no encontrado.');
+    error.status = 404;
+    throw error;
+  }
+
+  if (incident.user.toString() !== userId.toString()) {
+    const error = new Error('No tenés permiso para cancelar este incidente.');
+    error.status = 403;
+    throw error;
+  }
+
+  const currentStatusName = incident.status?.name?.toLowerCase();
+  if (!CANCELLABLE_STATUSES.includes(currentStatusName)) {
+    const error = new Error('El incidente no puede cancelarse en su estado actual.');
+    error.status = 409;
+    throw error;
+  }
+
+  const cancelledStatus = await Status.findOne({ name: 'cancelado' });
+  if (!cancelledStatus) {
+    const error = new Error('Estado "cancelado" no encontrado en el sistema.');
+    error.status = 500;
+    throw error;
+  }
+
+  const updated = await Incident.findByIdAndUpdate(
+    incidentId,
+    {
+      $set: { status: cancelledStatus._id },
+      $push: { statusHistory: { status: cancelledStatus._id, changedBy: userId, source: 'user' } }
+    },
+    { returnDocument: 'after' }
+  );
+
+  return updated;
+};
+
 // ==========================================
 // EXPORTACIONES
 // ==========================================
@@ -219,5 +289,7 @@ module.exports = {
   getAllIncidents,
   getIncidentHistory,
   updateIncidentStatus,
-  updateIncidentCategory
+  updateIncidentCategory,
+  updateIncidentPriority, 
+  cancelIncident
 };
