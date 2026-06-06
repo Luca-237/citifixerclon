@@ -16,8 +16,7 @@ const statuses = [
   { name: 'en_proceso',  description: 'El incidente está siendo atendido.' },
   { name: 'resuelto',    description: 'El incidente fue resuelto.' },
   { name: 'rechazado',   description: 'El incidente fue rechazado.' },
-  { name: 'cancelado',   description: 'El incidente fue cancelado por el usuario.' },
-  { name: 'dudoso',      description: 'El incidente es visible para el usuario como pendiente pero dudoso para el admin' }
+  { name: 'cancelado',   description: 'El incidente fue cancelado por el usuario.' }
 ];
 
 const categories = [
