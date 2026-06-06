@@ -95,7 +95,13 @@ const IncidentForm = ({ onSuccess, onClose }) => {
         error.response?.data?.message ||
         error.response?.data?.error ||
         "Ocurrió un error al enviar el reporte. Intentá de nuevo.";
-      setErrorSubmit(msg);
+
+      if (error.response?.status === 400 && msg.toLowerCase().includes("villa maría")) {
+        setFieldErrors((prev) => ({ ...prev, ubicacion: msg }));
+        setStep(1);
+      } else {
+        setErrorSubmit(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -154,19 +160,20 @@ const IncidentForm = ({ onSuccess, onClose }) => {
             </div>
 
             {/* Dirección capturada */}
-            {direccionDisplay ? (
+            {fieldErrors.ubicacion ? (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-500 text-sm">
+                <MapPin size={13} className="shrink-0" />
+                <span>{fieldErrors.ubicacion}</span>
+              </div>
+            ) : direccionDisplay ? (
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-blanquito/20 text-azul-oscuro border border-blanquito/50 text-sm">
                 <MapPin size={13} className="shrink-0 text-celestito" />
                 <span className="font-medium truncate">{direccionDisplay}</span>
               </div>
             ) : (
-              <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm border ${
-                fieldErrors.ubicacion
-                  ? "bg-red-50 border-red-200 text-red-500"
-                  : "bg-slate-50 border-slate-100 text-slate-400"
-              }`}>
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm border bg-slate-50 border-slate-100 text-slate-400">
                 <MapPin size={13} className="shrink-0" />
-                <span>{fieldErrors.ubicacion ?? "Tocá el mapa para marcar la ubicación"}</span>
+                <span>Tocá el mapa para marcar la ubicación</span>
               </div>
             )}
           </div>
