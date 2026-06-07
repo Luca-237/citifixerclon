@@ -2,6 +2,7 @@ const Incident = require('../models/incident');
 const IncidentGroup = require('../models/incidentGroup');
 const Status = require('../models/status');
 const mongoose = require('mongoose');
+const { createNotifications } = require('./notification.service');
 
 const CONFIANZA_UMBRAL = 0.85;
 
@@ -296,6 +297,24 @@ const updateGroupStatus = async (groupId, newStatusId, userId) => {
       $push: { statusHistory: { status: newStatusId, changedBy: userId, source: 'admin' } }
     }
   );
+
+  // Notificar a cada usuario con su propio incidente
+  const affectedIncidents = await Incident.find(
+    { _id: { $in: group.incidents }, is_cancelled: { $ne: true } },
+    { user: 1 }
+  );
+
+  const recipients = affectedIncidents
+    .filter(i => i.user)
+    .map(i => ({ userId: i.user, incidentId: i._id }));
+
+  if (recipients.length) {
+    await createNotifications(recipients, {
+      type: 'status_change',
+      message: `El estado de tu incidente fue actualizado a "${newStatus?.name}".`,
+      groupId: group._id
+    });
+  }
 
   return group;
 };

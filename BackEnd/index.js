@@ -1,19 +1,34 @@
 require('dotenv').config({ path: './config/.env' });
+const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const { clerkMiddleware } = require('@clerk/express');
+const { Server } = require('socket.io');
 const mongoConnect = require('./config/mongoConnet');
 const authRoutes = require('./routes/auth.routes');
 const incidentRoutes = require('./routes/incident.routes');
 const categoryRoutes = require('./routes/category.routes');
 const statusRoutes = require('./routes/status.routes');
 const userRoutes = require('./routes/user.routes');
+const externalRoutes = require('./routes/external.routes');
+const notificationRoutes = require('./routes/notification.routes');
+const { setupSocket } = require('./services/socket.service');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 mongoConnect();
+
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL,
+    credentials: true
+  }
+});
+
+setupSocket(io);
 
 app.use(cors({
   origin: process.env.FRONTEND_URL,
@@ -33,7 +48,11 @@ app.use('/api/incidents', incidentRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/statuses', statusRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/external', externalRoutes);
+app.use('/api/notifications', notificationRoutes);
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
+
+module.exports = { io };
