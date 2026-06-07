@@ -1,9 +1,10 @@
-import { useUser } from "@clerk/clerk-react";
-import { Mail, Phone, MessageCircle, Clock } from "lucide-react";
+import { useUser, useClerk } from "@clerk/clerk-react";
+import { Mail, Phone, MessageCircle, Clock, LogOut } from "lucide-react";
 import { STATUS_KEYS } from "@/lib/incidents";
 
 export default function PerfilTab({ incidents, loading }) {
   const { user } = useUser();
+  const { signOut } = useClerk();
 
   const joinedDate = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString("es-AR", { year: "numeric", month: "long" })
@@ -158,6 +159,14 @@ export default function PerfilTab({ incidents, loading }) {
       </div>
 
     </div>
+
+    <button
+      onClick={() => signOut()}
+      className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-xl border border-red-200 bg-white text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors"
+    >
+      <LogOut size={15} />
+      Cerrar sesión
+    </button>
 
     </div>
   );
