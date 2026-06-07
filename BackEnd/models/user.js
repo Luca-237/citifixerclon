@@ -3,8 +3,9 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   clerkId: {
     type: String,
-    required: true,
-    unique: true
+    default: null,
+    unique: true,
+    sparse: true
   },
   email: {
     type: String,
@@ -25,13 +26,42 @@ const userSchema = new mongoose.Schema({
   },
   dni: {
     type: String,
-    required: true,
+    default: null,
     match: /^\d{8}$/
   },
   role: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Role',
     required: true
+  },
+  telefono: {
+    type: String,
+    default: null
+  },
+  direccion: {
+    type: String,
+    default: null
+  },
+  ciudad: {
+    type: String,
+    default: null
+  },
+  barrio: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Neighborhood',
+    default: null
+  },
+  provincia: {
+    type: String,
+    default: null
+  },
+  codigoPostal: {
+    type: String,
+    default: null
+  },
+  profileComplete: {
+    type: Boolean,
+    default: false
   },
   isBanned: {
     type: Boolean,

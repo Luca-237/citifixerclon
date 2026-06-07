@@ -1,6 +1,15 @@
 const User = require('../models/user');
 const Role = require('../models/role');
+const Neighborhood = require('../models/neighborhood');
 const mongoose = require('mongoose');
+
+const DNI_REGEX = /^\d{8}$/;
+const TELEFONO_REGEX = /^\d{10}$/;
+const CODIGO_POSTAL_REGEX = /^\d{4}([A-Z]{3})?$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const isProfileComplete = (u) =>
+  !!(u.dni && u.telefono && u.direccion && u.ciudad && u.barrio && u.provincia && u.codigoPostal);
 
 // ==========================================
 // 1. CONSULTAS
@@ -37,7 +46,234 @@ const getRoles = async () => {
 };
 
 // ==========================================
-// 2. CAMBIAR ROL
+// 2. PERFIL PROPIO
+// ==========================================
+
+const getMyProfile = async (userId) => {
+  return await User.findById(userId)
+    .populate('role', 'name')
+    .populate('barrio', 'name');
+};
+
+const updateProfile = async (userId, data) => {
+  const { telefono, direccion, ciudad, barrioId, provincia, codigoPostal, dni } = data;
+  const errors = [];
+
+  const user = await User.findById(userId);
+  if (!user) {
+    const error = new Error('Usuario no encontrado.');
+    error.status = 404;
+    throw error;
+  }
+
+  // DNI: obligatorio si el usuario no lo tiene aún, inmutable si ya lo tiene
+  if (!user.dni) {
+    if (!dni || !DNI_REGEX.test(String(dni))) {
+      errors.push('El DNI debe tener exactamente 8 dígitos numéricos.');
+    }
+  }
+
+  if (!telefono || !TELEFONO_REGEX.test(String(telefono))) {
+    errors.push('El teléfono debe tener exactamente 10 dígitos numéricos.');
+  }
+  if (!direccion || typeof direccion !== 'string' || direccion.trim().length < 3) {
+    errors.push('La dirección es obligatoria.');
+  }
+  if (!ciudad || typeof ciudad !== 'string' || ciudad.trim().length < 2) {
+    errors.push('La ciudad es obligatoria.');
+  }
+  if (!provincia || typeof provincia !== 'string' || provincia.trim().length < 2) {
+    errors.push('La provincia es obligatoria.');
+  }
+  if (!codigoPostal || !CODIGO_POSTAL_REGEX.test(String(codigoPostal).toUpperCase())) {
+    errors.push('El código postal debe tener 4 dígitos, o formato CPA (ej: A1234ABC).');
+  }
+  if (!barrioId || !mongoose.Types.ObjectId.isValid(barrioId)) {
+    errors.push('El barrio enviado no es válido.');
+  }
+
+  if (errors.length > 0) {
+    const error = new Error('Datos del perfil inválidos.');
+    error.status = 400;
+    error.details = errors;
+    throw error;
+  }
+
+  const barrio = await Neighborhood.findById(barrioId);
+  if (!barrio) {
+    const error = new Error('Barrio no encontrado.');
+    error.status = 404;
+    throw error;
+  }
+
+  const updateFields = {
+    telefono: String(telefono),
+    direccion: direccion.trim(),
+    ciudad: ciudad.trim(),
+    barrio: barrioId,
+    provincia: provincia.trim(),
+    codigoPostal: String(codigoPostal).toUpperCase()
+  };
+  if (!user.dni && dni) updateFields.dni = String(dni);
+
+  const finalDni = updateFields.dni || user.dni;
+  updateFields.profileComplete = isProfileComplete({ ...user.toObject(), ...updateFields, dni: finalDni });
+
+  return await User.findByIdAndUpdate(
+    userId,
+    { $set: updateFields },
+    { returnDocument: 'after' }
+  ).populate('role', 'name').populate('barrio', 'name');
+};
+
+// ==========================================
+// CREACIÓN POR ADMIN
+// ==========================================
+
+const createUserByAdmin = async (data) => {
+  const { email, roleId, firstName, lastName, dni, telefono, direccion, ciudad, barrioId, provincia, codigoPostal } = data;
+  const errors = [];
+
+  if (!email || !EMAIL_REGEX.test(email)) errors.push('El email es inválido.');
+  if (!roleId || !mongoose.Types.ObjectId.isValid(roleId)) errors.push('El rol es obligatorio y debe ser válido.');
+  if (dni && !DNI_REGEX.test(String(dni))) errors.push('El DNI debe tener exactamente 8 dígitos numéricos.');
+  if (telefono && !TELEFONO_REGEX.test(String(telefono))) errors.push('El teléfono debe tener exactamente 10 dígitos numéricos.');
+  if (codigoPostal && !CODIGO_POSTAL_REGEX.test(String(codigoPostal).toUpperCase())) errors.push('El código postal no tiene un formato válido.');
+  if (barrioId && !mongoose.Types.ObjectId.isValid(barrioId)) errors.push('El barrio enviado no es válido.');
+
+  if (errors.length > 0) {
+    const error = new Error('Datos inválidos.');
+    error.status = 400;
+    error.details = errors;
+    throw error;
+  }
+
+  const role = await Role.findById(roleId);
+  if (!role) {
+    const error = new Error('Rol no encontrado.');
+    error.status = 404;
+    throw error;
+  }
+  if (['superAdmin', 'ai'].includes(role.name)) {
+    const error = new Error('No podés asignar el rol superAdmin ni ai.');
+    error.status = 403;
+    throw error;
+  }
+
+  const emailExists = await User.findOne({ email });
+  if (emailExists) {
+    const error = new Error('Ya existe un usuario con ese email.');
+    error.status = 409;
+    throw error;
+  }
+
+  if (barrioId) {
+    const barrio = await Neighborhood.findById(barrioId);
+    if (!barrio) {
+      const error = new Error('Barrio no encontrado.');
+      error.status = 404;
+      throw error;
+    }
+  }
+
+  const fields = {
+    clerkId: null,
+    email,
+    firstName: firstName?.trim() || '',
+    lastName: lastName?.trim() || '',
+    role: roleId,
+    ...(dni && { dni: String(dni) }),
+    ...(telefono && { telefono: String(telefono) }),
+    ...(direccion && { direccion: direccion.trim() }),
+    ...(ciudad && { ciudad: ciudad.trim() }),
+    ...(barrioId && { barrio: barrioId }),
+    ...(provincia && { provincia: provincia.trim() }),
+    ...(codigoPostal && { codigoPostal: String(codigoPostal).toUpperCase() })
+  };
+
+  fields.profileComplete = isProfileComplete(fields);
+
+  const newUser = new User(fields);
+  await newUser.save();
+  return await User.findById(newUser._id).populate('role', 'name').populate('barrio', 'name');
+};
+
+// ==========================================
+// EDICIÓN DE PERFIL POR ADMIN (parcial)
+// ==========================================
+
+const updateUserProfileByAdmin = async (targetUserId, data) => {
+  if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+    const error = new Error('El usuario enviado no es válido.');
+    error.status = 400;
+    throw error;
+  }
+
+  const user = await User.findById(targetUserId);
+  if (!user) {
+    const error = new Error('Usuario no encontrado.');
+    error.status = 404;
+    throw error;
+  }
+
+  const { dni, telefono, direccion, ciudad, barrioId, provincia, codigoPostal, firstName, lastName } = data;
+  const errors = [];
+  const updateFields = {};
+
+  if (dni !== undefined) {
+    if (!DNI_REGEX.test(String(dni))) errors.push('El DNI debe tener exactamente 8 dígitos numéricos.');
+    else updateFields.dni = String(dni);
+  }
+  if (telefono !== undefined) {
+    if (!TELEFONO_REGEX.test(String(telefono))) errors.push('El teléfono debe tener exactamente 10 dígitos numéricos.');
+    else updateFields.telefono = String(telefono);
+  }
+  if (direccion !== undefined) {
+    if (typeof direccion !== 'string' || direccion.trim().length < 3) errors.push('La dirección no es válida.');
+    else updateFields.direccion = direccion.trim();
+  }
+  if (ciudad !== undefined) {
+    if (typeof ciudad !== 'string' || ciudad.trim().length < 2) errors.push('La ciudad no es válida.');
+    else updateFields.ciudad = ciudad.trim();
+  }
+  if (provincia !== undefined) {
+    if (typeof provincia !== 'string' || provincia.trim().length < 2) errors.push('La provincia no es válida.');
+    else updateFields.provincia = provincia.trim();
+  }
+  if (codigoPostal !== undefined) {
+    if (!CODIGO_POSTAL_REGEX.test(String(codigoPostal).toUpperCase())) errors.push('El código postal no tiene un formato válido.');
+    else updateFields.codigoPostal = String(codigoPostal).toUpperCase();
+  }
+  if (barrioId !== undefined) {
+    if (!mongoose.Types.ObjectId.isValid(barrioId)) errors.push('El barrio enviado no es válido.');
+    else {
+      const barrio = await Neighborhood.findById(barrioId);
+      if (!barrio) errors.push('Barrio no encontrado.');
+      else updateFields.barrio = barrioId;
+    }
+  }
+  if (firstName !== undefined) updateFields.firstName = firstName.trim();
+  if (lastName !== undefined) updateFields.lastName = lastName.trim();
+
+  if (errors.length > 0) {
+    const error = new Error('Datos inválidos.');
+    error.status = 400;
+    error.details = errors;
+    throw error;
+  }
+
+  const merged = { ...user.toObject(), ...updateFields };
+  updateFields.profileComplete = isProfileComplete(merged);
+
+  return await User.findByIdAndUpdate(
+    targetUserId,
+    { $set: updateFields },
+    { returnDocument: 'after' }
+  ).populate('role', 'name').populate('barrio', 'name');
+};
+
+// ==========================================
+// 3. CAMBIAR ROL
 // ==========================================
 
 const changeUserRole = async (targetUserId, newRoleId, requesterId) => {
@@ -156,6 +392,10 @@ const banUser = async (targetUserId, isBanned, requesterId) => {
 module.exports = {
   getUsers,
   getUserById,
+  getMyProfile,
+  updateProfile,
+  createUserByAdmin,
+  updateUserProfileByAdmin,
   getRoles,
   changeUserRole,
   banUser

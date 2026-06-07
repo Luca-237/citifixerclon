@@ -7,16 +7,17 @@ const middleClaudinary = require('../middlewares/claudinary');
 const { create, getMyIncidents, getAll, getHistory, getGroupHistory, getGroupIncidents, updateStatus, updateCategory, updatePriority, cancel } = require('../controllers/incident.controller');
 const { validateUserReputation } = require('../middlewares/validateUserReputation');
 const { validateLocation } = require('../middlewares/validateLocation');
+const { requireProfileComplete } = require('../middlewares/requireProfileComplete');
 
-router.post('/', authMiddleware, verifyRole('user', 'admin', 'superAdmin'), validateUserReputation, middleClaudinary, validateLocation, aiIncidentValidation, create);
+router.post('/', authMiddleware, verifyRole('user', 'admin', 'superAdmin'), requireProfileComplete, validateUserReputation, middleClaudinary, validateLocation, aiIncidentValidation, create);
 router.get('/', authMiddleware, verifyRole('admin', 'superAdmin'), getAll);
-router.get('/my-incidents', authMiddleware, verifyRole('user', 'admin', 'superAdmin'), getMyIncidents);
+router.get('/my-incidents', authMiddleware, verifyRole('user', 'admin', 'superAdmin'), requireProfileComplete, getMyIncidents);
 router.get('/:id/history', authMiddleware, verifyRole('user', 'admin', 'superAdmin'), getHistory);
 router.get('/:id/group-history', authMiddleware, verifyRole('admin', 'superAdmin'), getGroupHistory);
 router.get('/:id/incidents', authMiddleware, verifyRole('admin', 'superAdmin'), getGroupIncidents);
 router.patch('/:id/status', authMiddleware, verifyRole('admin', 'superAdmin'), updateStatus);
 router.patch('/:id/category', authMiddleware, verifyRole('admin', 'superAdmin'), updateCategory);
 router.patch('/:id/priority', authMiddleware, verifyRole('admin', 'superAdmin'), updatePriority);
-router.patch('/:id/cancel', authMiddleware, verifyRole('user', 'admin', 'superAdmin'), cancel);
+router.patch('/:id/cancel', authMiddleware, verifyRole('user', 'admin', 'superAdmin'), requireProfileComplete, cancel);
 
 module.exports = router;
