@@ -1,8 +1,17 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// 1. Log de validación inicial
+if (!process.env.GEMINI_API_KEY) {
+  console.error("❌ [IA CRÍTICO] GEMINI_API_KEY no está definida en el archivo .env");
+}
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const analizarIncidenteIA = async (title, description, gruposCercanos = []) => {
   try {
+    console.log(`\n🤖 [IA START] Analizando nuevo incidente: "${title}"`);
+    console.log(`📊 [IA INFO] Grupos cercanos a procesar: ${gruposCercanos.length}`);
+
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
       generationConfig: { responseMimeType: "application/json" }
@@ -79,11 +88,34 @@ const analizarIncidenteIA = async (title, description, gruposCercanos = []) => {
       }
     `;
 
+    console.log("🚀 [IA FETCH] Enviando prompt a Google Gemini...");
+    
     const result = await model.generateContent(prompt);
-    return JSON.parse(result.response.text());
+    const responseText = result.response.text();
+    
+    // 2. Log para ver qué carajo respondió Gemini antes de que explote el JSON.parse
+    console.log("📥 [IA RAW RESPONSE] Respuesta recibida de Gemini:", responseText);
+
+    try {
+      const parsedData = JSON.parse(responseText);
+      console.log("✅ [IA SUCCESS] JSON parseado correctamente.");
+      return parsedData;
+    } catch (parseError) {
+      // 3. Este error salta si Gemini escribió texto fuera del JSON (ej. "Aquí tienes tu respuesta: { ... }")
+      console.error("❌ [IA PARSE ERROR] Gemini no devolvió un JSON válido.");
+      console.error("Detalle del error de parseo:", parseError.message);
+      throw new Error("Fallo en el formato de respuesta (No es JSON)."); 
+    }
 
   } catch (error) {
-    console.warn(`⚠️ [Aviso IA] Gemini no disponible. Aplicando fallback.`);
+    // 4. EL ERROR GORDO: Aquí atrapamos fallos de red, de API KEY, cuota excedida, etc.
+    console.error("\n❌ [IA ERROR CRÍTICO] Falló la comunicación con Gemini:");
+    console.error(error); // Imprime todo el stack trace
+    
+    if (error.status) console.error("   - HTTP Status:", error.status);
+    if (error.message) console.error("   - Mensaje:", error.message);
+
+    console.warn(`⚠️ [IA FALLBACK] Aplicando datos manuales de contingencia...`);
     return {
       categoriaSugerida: "Requiere clasificación manual",
       estadoSugerido: "pendiente",
@@ -93,7 +125,7 @@ const analizarIncidenteIA = async (title, description, gruposCercanos = []) => {
       idGrupoCandidato: null,
       confianza: 0,
       esRepresentanteMejor: false,
-      justificacion: "[SISTEMA]: La IA no pudo procesar este reporte. Se deben establecer prioridad, categoría y duplicados manualmente."
+      justificacion: `[SISTEMA]: La IA falló al procesar (${error.message || "Error desconocido"}). Revisión manual requerida.`
     };
   }
 };
