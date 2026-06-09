@@ -5,7 +5,7 @@ const heatmapLayerStyle = {
   id: "incidents-heat",
   type: "heatmap",
   paint: {
-    "heatmap-weight": 1,
+    "heatmap-weight": ["interpolate", ["linear"], ["get", "weight"], 1, 0.5, 10, 3],
     "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 18, 3],
     "heatmap-color": [
       "interpolate", ["linear"], ["heatmap-density"],
@@ -25,9 +25,9 @@ export default function HeatmapLayer({ points }) {
   const geojson = useMemo(
     () => ({
       type: "FeatureCollection",
-      features: points.map(([lat, lng]) => ({
+      features: points.map(({ lat, lng, weight }) => ({
         type: "Feature",
-        properties: {},
+        properties: { weight },
         geometry: { type: "Point", coordinates: [lng, lat] },
       })),
     }),

@@ -48,12 +48,12 @@ export default function IncidentDetailSheet({
   const [cancelError, setCancelError] = useState(null);
   const notiCtx = useNotificationContext();
 
-  // Marcar notificaciones como leídas al abrir el detalle (solo ciudadano)
+  // Marcar notificaciones como leídas cuando el sheet se abre (solo ciudadano)
   useEffect(() => {
-    if (!isAdmin && incident?._id && notiCtx) {
+    if (!isAdmin && open && incident?._id && notiCtx) {
       notiCtx.markByIncident(incident._id);
     }
-  }, [incident?._id, isAdmin]);
+  }, [open, incident?._id, isAdmin]);
 
   if (!incident) return null;
 

@@ -50,6 +50,7 @@ export const STATUS_PALETTE = [
 ];
 
 export function getStatusStyle(name) {
+  if (!name) return STATUS_PALETTE[0];
   if (STATUS_STYLES[name]) return STATUS_STYLES[name];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffff;

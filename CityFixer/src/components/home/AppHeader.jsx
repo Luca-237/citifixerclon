@@ -67,14 +67,14 @@ function NotificationPanel({ onNavigate }) {
             <button
               key={noti._id}
               onClick={() => onNavigate(noti)}
-              className={`w-full text-left px-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors flex items-start gap-3 ${
-                !noti.isRead ? "bg-blue-50/60" : ""
+              className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-3 ${
+                !noti.isRead ? "bg-blue-50 hover:bg-blue-100/70" : "hover:bg-slate-50"
               }`}
             >
               {/* Indicador no leída */}
-              <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!noti.isRead ? "bg-primary" : "bg-transparent"}`} />
+              <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!noti.isRead ? "bg-blue-500" : "bg-slate-200"}`} />
               <div className="flex-1 min-w-0">
-                <p className={`text-xs leading-snug ${!noti.isRead ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}>
+                <p className={`text-xs leading-snug ${!noti.isRead ? "font-semibold text-slate-900" : "font-normal text-slate-500"}`}>
                   {noti.message}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">{relativeTime(noti.createdAt)}</p>

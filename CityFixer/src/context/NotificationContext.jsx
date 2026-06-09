@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import { toast } from "sonner";
 import {
   getNotifications,
   markAllNotificationsRead,
@@ -13,9 +14,15 @@ export function NotificationProvider({ children }) {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    // Cargar historial inicial — el controller devuelve el array directamente
+    // Cargar historial inicial — merge con notificaciones ya recibidas por socket
     getNotifications()
-      .then(({ data }) => setNotifications(Array.isArray(data) ? data : []))
+      .then(({ data }) => {
+        if (!Array.isArray(data)) return;
+        setNotifications((prev) => {
+          const ids = new Set(prev.map((n) => n._id));
+          return [...prev, ...data.filter((n) => !ids.has(n._id))];
+        });
+      })
       .catch(() => {});
 
     // Conectar socket
@@ -25,9 +32,9 @@ export function NotificationProvider({ children }) {
     socket.on("connect",            ()    => console.log("[socket] conectado:", socket.id));
     socket.on("connect_error",      (err) => console.warn("[socket] error de conexión:", err.message));
     socket.on("disconnect",         ()    => console.log("[socket] desconectado"));
-    socket.on("notification",       (noti) => {
-      console.log("[socket] notificación recibida:", noti);
+    socket.on("notification", (noti) => {
       setNotifications((prev) => [noti, ...prev]);
+      toast.info(noti.message, { duration: 5000 });
     });
 
     return () => socket.disconnect();

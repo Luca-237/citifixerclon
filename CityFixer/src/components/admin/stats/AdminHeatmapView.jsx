@@ -3,17 +3,22 @@ import Map from "react-map-gl";
 import HeatmapLayer from "./HeatmapLayer";
 
 const DEFAULT_VIEW = { longitude: -63.2435, latitude: -32.4097, zoom: 13 };
+const EXCLUDED_STATUSES = new Set(["rechazado", "dudoso"]);
 
 export default function AdminHeatmapView({ incidents, loading }) {
   const heatPoints = useMemo(
     () =>
       incidents
-        .filter(
-          (inc) =>
-            typeof inc.location?.lat === "number" &&
-            typeof inc.location?.lng === "number",
-        )
-        .map((inc) => [inc.location.lat, inc.location.lng]),
+        .filter((inc) => {
+          if (EXCLUDED_STATUSES.has(inc.status?.name)) return false;
+          const loc = inc.representativeId?.location;
+          return typeof loc?.lat === "number" && typeof loc?.lng === "number";
+        })
+        .map((inc) => ({
+          lat: inc.representativeId.location.lat,
+          lng: inc.representativeId.location.lng,
+          weight: inc.incidents?.length ?? 1,
+        })),
     [incidents],
   );
 
@@ -33,7 +38,7 @@ export default function AdminHeatmapView({ incidents, loading }) {
       <div className="mb-3">
         <p className="text-sm font-semibold text-slate-900">Densidad geográfica de reportes</p>
         <p className="text-xs text-slate-400 mt-0.5">
-          {heatPoints.length} incidente{heatPoints.length !== 1 ? "s" : ""} geolocalizados de {incidents.length} totales
+          {heatPoints.length} grupo{heatPoints.length !== 1 ? "s" : ""} geolocalizados de {incidents.length} totales
         </p>
       </div>
 

@@ -213,7 +213,7 @@ const getAllGroups = async () => {
     .populate('category', 'name description')
     .populate('statusHistory.status', 'name description')
     .populate('statusHistory.changedBy', 'firstName lastName email')
-    .sort({ priority: -1, createdAt: -1 });
+    .sort({ updatedAt: 1, createdAt: -1 });
 };
 
 // ==========================================
