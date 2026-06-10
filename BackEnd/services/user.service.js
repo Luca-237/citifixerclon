@@ -11,7 +11,7 @@ const CODIGO_POSTAL_REGEX = /^\d{4}([A-Z]{3})?$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const isProfileComplete = (u) =>
-  !!(u.dni && u.telefono && u.direccion && u.ciudad && u.barrio && u.provincia && u.codigoPostal);
+  !!(u.dni && u.telefono && u.direccion && u.ciudad && u.provincia && u.codigoPostal);
 
 // ==========================================
 // 1. CONSULTAS
@@ -137,7 +137,7 @@ const updateProfile = async (userId, data) => {
   if (!codigoPostal || !CODIGO_POSTAL_REGEX.test(String(codigoPostal).toUpperCase())) {
     errors.push('El código postal debe tener 4 dígitos, o formato CPA (ej: A1234ABC).');
   }
-  if (!barrioId || !mongoose.Types.ObjectId.isValid(barrioId)) {
+  if (barrioId && !mongoose.Types.ObjectId.isValid(barrioId)) {
     errors.push('El barrio enviado no es válido.');
   }
 
@@ -148,18 +148,20 @@ const updateProfile = async (userId, data) => {
     throw error;
   }
 
-  const barrio = await Neighborhood.findById(barrioId);
-  if (!barrio) {
-    const error = new Error('Barrio no encontrado.');
-    error.status = 404;
-    throw error;
+  if (barrioId) {
+    const barrio = await Neighborhood.findById(barrioId);
+    if (!barrio) {
+      const error = new Error('Barrio no encontrado.');
+      error.status = 404;
+      throw error;
+    }
   }
 
   const updateFields = {
     telefono: String(telefono),
     direccion: direccion.trim(),
     ciudad: ciudad.trim(),
-    barrio: barrioId,
+    barrio: barrioId || null,
     provincia: provincia.trim(),
     codigoPostal: String(codigoPostal).toUpperCase()
   };
