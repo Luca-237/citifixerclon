@@ -148,7 +148,7 @@ const createIncident = async (incidentData, userId, aiData, userRole = 'user') =
     status: grupoStatusId,
     statusHistory: [{ status: grupoStatusId, changedBy, source }],
     category: incidentData.category,
-    priority: 1,
+    priority: aiData?.prioridad || 1,
     representativeId: incidentId,
     incidents: [incidentId],
     is_emergency: aiData?.isEmergency || false,
@@ -406,6 +406,7 @@ const resolveDubious = async (groupId, action, adminId) => {
 
     group.status = rechazadoStatus._id;
     group.statusHistory.push({ status: rechazadoStatus._id, changedBy: adminId, source: 'admin' });
+    group.finalizedAt = new Date();
     group.ai_suggestion.estado = 'rechazado';
 
     await Incident.updateMany(
@@ -444,6 +445,7 @@ const resolveDubious = async (groupId, action, adminId) => {
       if (cancelledStatus) {
         group.status = cancelledStatus._id;
         group.statusHistory.push({ status: cancelledStatus._id, changedBy: adminId, source: 'admin' });
+        group.finalizedAt = new Date();
       }
       group.ai_suggestion.estado = 'aprobado';
       await group.save();
