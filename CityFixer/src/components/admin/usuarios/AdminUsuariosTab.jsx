@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Search, Loader2, MoreHorizontal, Shield, ShieldOff, X, User, Plus, Edit3, Check } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { getNeighborhoods } from "@/services/api";
+import { Combobox } from "@/components/ui/combobox";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -452,20 +453,24 @@ export default function AdminUsuariosTab() {
               {!isSuperAdmin(selectedUser) && (
                 <div className="flex flex-col gap-2">
                   <Label className="text-sm font-medium text-slate-700">Rol</Label>
-                  <select
+                  <Select
                     value={selectedUser.role?._id ?? ""}
+                    onValueChange={(v) => handleRoleChange(selectedUser._id, v)}
                     disabled={actionLoading[selectedUser._id] === "role"}
-                    onChange={(e) => handleRoleChange(selectedUser._id, e.target.value)}
-                    className="w-full text-sm rounded-xl border border-slate-200 bg-white px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer disabled:opacity-50"
                   >
-                    {roles
-                      .filter((r) => r.name !== "superAdmin" && r.name !== "ai")
-                      .map((r) => (
-                        <option key={r._id} value={r._id}>
-                          {ROLE_LABELS[r.name] ?? r.name}
-                        </option>
-                      ))}
-                  </select>
+                    <SelectTrigger className="w-full rounded-xl border-slate-200 text-sm focus:ring-primary/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles
+                        .filter((r) => r.name !== "superAdmin" && r.name !== "ai")
+                        .map((r) => (
+                          <SelectItem key={r._id} value={r._id}>
+                            {ROLE_LABELS[r.name] ?? r.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                   {actionLoading[selectedUser._id] === "role" && (
                     <div className="flex items-center gap-1.5 text-xs text-slate-400">
                       <Loader2 size={12} className="animate-spin" />
@@ -616,12 +621,13 @@ export default function AdminUsuariosTab() {
                     ))}
                     <div className="flex flex-col gap-1">
                       <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Barrio</label>
-                      <select value={profileForm.barrioId} onChange={setProfileField("barrioId")} className={INPUT_CLS}>
-                        <option value="">Seleccioná un barrio...</option>
-                        {neighborhoods.map((n) => (
-                          <option key={n._id} value={n._id}>{n.name}</option>
-                        ))}
-                      </select>
+                      <Combobox
+                        value={neighborhoods.find((n) => n._id === profileForm.barrioId)?.name ?? ""}
+                        onSelect={(opt) => setProfileForm((prev) => ({ ...prev, barrioId: opt.value }))}
+                        options={neighborhoods.map((n) => ({ value: n._id, label: n.name }))}
+                        placeholder="Seleccioná un barrio..."
+                        className={INPUT_CLS}
+                      />
                     </div>
                   </div>
                 )}

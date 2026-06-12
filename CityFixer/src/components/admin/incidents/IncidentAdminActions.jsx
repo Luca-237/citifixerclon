@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2, AlertTriangle, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStatuses } from "@/hooks/useStatuses";
 import { getCategorias, updateIncidentStatus, updateIncidentCategory } from "@/services/api";
 import { STATUS_LABELS, capitalize, getStatusStyle } from "@/lib/incidents";
@@ -150,15 +151,16 @@ export default function IncidentAdminActions({ incident, onUpdated }) {
         <div className="flex flex-col gap-2 min-w-0">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Categoría</p>
           <div className="flex gap-2">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="flex-1 min-w-0 text-sm rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-celestito"
-            >
-              {categories.map((c) => (
-                <option key={c._id} value={c._id}>{capitalize(c.name)}</option>
-              ))}
-            </select>
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="flex-1 min-w-0 text-sm rounded-xl border-gray-200 bg-gray-50 text-gray-700 focus:ring-celestito">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c._id} value={c._id}>{capitalize(c.name)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <button
               onClick={handleCategoryChange}
               disabled={loadingCategory || selectedCategory === incident.category?._id}

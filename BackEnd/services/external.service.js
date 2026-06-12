@@ -36,9 +36,6 @@ const validateExternalOtp = async (code) => {
     error.status = 401;
     throw error;
   }
-
-  otp.used = true;
-  await otp.save();
 };
 
 // ==========================================

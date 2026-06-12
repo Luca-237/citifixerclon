@@ -3,6 +3,7 @@ import { Plus, Search, X, Archive } from "lucide-react";
 import AdminIncidentList from "./AdminIncidentList";
 import { useStatuses } from "@/hooks/useStatuses";
 import { capitalize, STATUS_LABELS } from "@/lib/incidents";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function getPriorityLabel(p) {
   if (p <= 2) return "Muy baja";
@@ -202,26 +203,41 @@ export default function AdminIncidentesTab({
           )}
         </div>
 
-        <select value={filters.status} onChange={(e) => set("status")(e.target.value)} className={SELECT_CLASS}>
-          <option value="todos">Todos los estados</option>
-          {statuses.map((s) => (
-            <option key={s._id} value={s.name}>{STATUS_LABELS[s.name] ?? capitalize(s.name)}</option>
-          ))}
-        </select>
+        <Select value={filters.status} onValueChange={set("status")}>
+          <SelectTrigger className={SELECT_CLASS}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos los estados</SelectItem>
+            {statuses.map((s) => (
+              <SelectItem key={s._id} value={s.name}>{STATUS_LABELS[s.name] ?? capitalize(s.name)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <select value={filters.category} onChange={(e) => set("category")(e.target.value)} className={SELECT_CLASS}>
-          <option value="todas">Todas las categorías</option>
-          {categories.map((cat) => (
-            <option key={cat._id} value={cat.name}>{capitalize(cat.name)}</option>
-          ))}
-        </select>
+        <Select value={filters.category} onValueChange={set("category")}>
+          <SelectTrigger className={SELECT_CLASS}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas las categorías</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat._id} value={cat.name}>{capitalize(cat.name)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <select value={filters.priority} onChange={(e) => set("priority")(e.target.value)} className={SELECT_CLASS}>
-          <option value="todas">Todas las prioridades</option>
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((p) => (
-            <option key={p} value={p}>{p} — {getPriorityLabel(p)}</option>
-          ))}
-        </select>
+        <Select value={filters.priority} onValueChange={set("priority")}>
+          <SelectTrigger className={SELECT_CLASS}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas las prioridades</SelectItem>
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((p) => (
+              <SelectItem key={p} value={String(p)}>{p} — {getPriorityLabel(p)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <div className="flex items-center gap-3 shrink-0 ml-auto">
           {hasActiveFilters && (

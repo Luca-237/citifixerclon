@@ -1,6 +1,62 @@
 import { useState } from "react";
-import { ImageOff } from "lucide-react";
+import { ImageOff, Play } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+
+// Detecta si una entrada es video, aceptando tanto string URL como objeto { url, type }
+function normalizeMedia(item) {
+  if (typeof item === "string") {
+    const isVideo = /\.(mp4|webm|mov|ogg)(\?|$)/i.test(item);
+    return { url: item, type: isVideo ? "video" : "image" };
+  }
+  // objeto { url, type } o { preview, type } del uploader
+  return { url: item.url ?? item.preview, type: item.type ?? "image" };
+}
+
+function MediaThumb({ item, onClick, className }) {
+  const { url, type } = normalizeMedia(item);
+  if (type === "video") {
+    return (
+      <div className={`relative bg-black cursor-pointer group ${className}`} onClick={onClick}>
+        <video
+          src={url}
+          className="w-full h-full object-cover opacity-80"
+          muted
+          playsInline
+          preload="metadata"
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-black/50 rounded-full p-2 group-hover:bg-black/70 transition-colors">
+            <Play size={18} className="text-white fill-white" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt=""
+      onClick={onClick}
+      className={`${className} cursor-pointer hover:opacity-85 transition-opacity`}
+    />
+  );
+}
+
+function LightboxContent({ item }) {
+  const { url, type } = normalizeMedia(item);
+  if (type === "video") {
+    return (
+      <video
+        src={url}
+        className="w-full max-h-[85vh] object-contain"
+        controls
+        autoPlay
+        playsInline
+      />
+    );
+  }
+  return <img src={url} alt="foto ampliada" className="w-full max-h-[85vh] object-contain" />;
+}
 
 export default function PhotoGallery({ photos, compact = false }) {
   const [lightbox, setLightbox] = useState(null);
@@ -18,32 +74,29 @@ export default function PhotoGallery({ photos, compact = false }) {
     <>
       {compact ? (
         <div className="grid grid-cols-3 gap-2">
-          {photos.map((url, i) => (
-            <img
+          {photos.map((item, i) => (
+            <MediaThumb
               key={i}
-              src={url}
-              alt={`foto-${i + 1}`}
-              onClick={() => setLightbox(url)}
-              className="aspect-square w-full rounded-lg object-cover cursor-pointer hover:opacity-85 transition-opacity"
+              item={item}
+              onClick={() => setLightbox(item)}
+              className="aspect-square w-full rounded-lg object-cover"
             />
           ))}
         </div>
       ) : photos.length === 1 ? (
-        <img
-          src={photos[0]}
-          alt="foto-1"
+        <MediaThumb
+          item={photos[0]}
           onClick={() => setLightbox(photos[0])}
-          className="w-full max-h-64 rounded-2xl object-contain bg-gray-50 cursor-pointer hover:opacity-90 transition-opacity"
+          className="w-full max-h-64 rounded-2xl object-contain bg-gray-50"
         />
       ) : (
         <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
-          {photos.map((url, i) => (
-            <img
+          {photos.map((item, i) => (
+            <MediaThumb
               key={i}
-              src={url}
-              alt={`foto-${i + 1}`}
-              onClick={() => setLightbox(url)}
-              className="h-40 w-40 shrink-0 rounded-2xl object-cover cursor-pointer hover:opacity-90 transition-opacity"
+              item={item}
+              onClick={() => setLightbox(item)}
+              className="h-40 w-40 shrink-0 rounded-2xl object-cover"
             />
           ))}
         </div>
@@ -51,8 +104,8 @@ export default function PhotoGallery({ photos, compact = false }) {
 
       <Dialog open={!!lightbox} onOpenChange={() => setLightbox(null)}>
         <DialogContent className="max-w-3xl p-0 bg-black border-none overflow-hidden" aria-describedby={undefined}>
-          <DialogTitle className="sr-only">Foto ampliada</DialogTitle>
-          <img src={lightbox} alt="foto ampliada" className="w-full max-h-[85vh] object-contain" />
+          <DialogTitle className="sr-only">Media ampliada</DialogTitle>
+          {lightbox && <LightboxContent item={lightbox} />}
         </DialogContent>
       </Dialog>
     </>

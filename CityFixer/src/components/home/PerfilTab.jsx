@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { STATUS_KEYS } from "@/lib/incidents";
 import { getMyProfile, patchProfile, getNeighborhoods } from "@/services/api";
+import { Combobox } from "@/components/ui/combobox";
 
 // ─── Validaciones (espejo del back-end) ──────────────────────────────────────
 const DNI_REGEX        = /^\d{8}$/;
@@ -328,12 +329,16 @@ export default function PerfilTab({ incidents, loading }) {
               </div>
 
               <EditField label="Barrio" error={errors.barrioId}>
-                <select value={form.barrioId} onChange={set("barrioId")} className={INPUT_CLS}>
-                  <option value="">Seleccioná un barrio...</option>
-                  {neighborhoods.map((n) => (
-                    <option key={n._id} value={n._id}>{n.name}</option>
-                  ))}
-                </select>
+                <Combobox
+                  value={neighborhoods.find((n) => n._id === form.barrioId)?.name ?? ""}
+                  onSelect={(opt) => {
+                    setForm((prev) => ({ ...prev, barrioId: opt.value }));
+                    setErrors((prev) => ({ ...prev, barrioId: null }));
+                  }}
+                  options={neighborhoods.map((n) => ({ value: n._id, label: n.name }))}
+                  placeholder="Seleccioná un barrio..."
+                  className={INPUT_CLS}
+                />
               </EditField>
 
               <EditField label="Código postal" error={errors.codigoPostal}>
