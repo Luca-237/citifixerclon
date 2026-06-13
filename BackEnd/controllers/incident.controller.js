@@ -63,9 +63,11 @@ const getAll = async (req, res) => {
 const getHistory = async (req, res) => {
   try {
     const { id } = req.params;
-    const incident = await getIncidentHistory(id);
+    const requester = { id: req.dbUser._id, role: req.dbUser.role?.name };
+    const incident = await getIncidentHistory(id, requester);
     res.status(200).json({ success: true, incident });
   } catch (error) {
+    if (error.status === 403) return res.status(403).json({ error: error.message });
     if (error.status === 404) return res.status(404).json({ error: error.message });
     res.status(500).json({ error: 'Error interno del servidor.' });
   }
