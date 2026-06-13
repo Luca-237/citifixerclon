@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import {
-  Mail, Phone, MessageCircle, Clock, LogOut,
-  MapPin, Building2, Hash, Edit3, Check, X,
-  Loader2, Lock, IdCard, ChevronRight,
+  LogOut, MapPin, Building2, Hash, Edit3, Check, X, Loader2, Lock, IdCard,
 } from "lucide-react";
+import SupportInfo from "./SupportInfo";
 import { STATUS_KEYS } from "@/lib/incidents";
 import { getMyProfile, patchProfile, getNeighborhoods } from "@/services/api";
 import { Combobox } from "@/components/ui/combobox";
@@ -13,6 +12,11 @@ import { Combobox } from "@/components/ui/combobox";
 const DNI_REGEX        = /^\d{8}$/;
 const TELEFONO_REGEX   = /^\d{10}$/;
 const CP_REGEX         = /^\d{4}([A-Za-z]{3})?$/;
+
+const normalize = (s) =>
+  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+const isVillaMaria = (ciudad) => normalize(ciudad) === "villa maria";
 
 function validate(form, hasDni) {
   const e = {};
@@ -24,7 +28,7 @@ function validate(form, hasDni) {
     e.direccion = "Mínimo 3 caracteres.";
   if (form.ciudad.trim().length < 2)
     e.ciudad = "Campo obligatorio.";
-  if (!form.barrioId)
+  if (isVillaMaria(form.ciudad) && !form.barrioId)
     e.barrioId = "Seleccioná un barrio.";
   if (form.provincia.trim().length < 2)
     e.provincia = "Campo obligatorio.";
@@ -145,9 +149,9 @@ export default function PerfilTab({ incidents, loading }) {
         telefono:     form.telefono.replace(/\D/g, ""),
         direccion:    form.direccion.trim(),
         ciudad:       form.ciudad.trim(),
-        barrioId:     form.barrioId,
         provincia:    form.provincia.trim(),
         codigoPostal: form.codigoPostal.trim().toUpperCase(),
+        ...(isVillaMaria(form.ciudad) && form.barrioId && { barrioId: form.barrioId }),
       });
       setProfile(data.user);
       setEditing(false);
@@ -328,18 +332,20 @@ export default function PerfilTab({ incidents, loading }) {
                 </EditField>
               </div>
 
-              <EditField label="Barrio" error={errors.barrioId}>
-                <Combobox
-                  value={neighborhoods.find((n) => n._id === form.barrioId)?.name ?? ""}
-                  onSelect={(opt) => {
-                    setForm((prev) => ({ ...prev, barrioId: opt.value }));
-                    setErrors((prev) => ({ ...prev, barrioId: null }));
-                  }}
-                  options={neighborhoods.map((n) => ({ value: n._id, label: n.name }))}
-                  placeholder="Seleccioná un barrio..."
-                  className={INPUT_CLS}
-                />
-              </EditField>
+              {isVillaMaria(form.ciudad) && (
+                <EditField label="Barrio" error={errors.barrioId}>
+                  <Combobox
+                    value={neighborhoods.find((n) => n._id === form.barrioId)?.name ?? ""}
+                    onSelect={(opt) => {
+                      setForm((prev) => ({ ...prev, barrioId: opt.value }));
+                      setErrors((prev) => ({ ...prev, barrioId: null }));
+                    }}
+                    options={neighborhoods.map((n) => ({ value: n._id, label: n.name }))}
+                    placeholder="Seleccioná un barrio..."
+                    className={INPUT_CLS}
+                  />
+                </EditField>
+              )}
 
               <EditField label="Código postal" error={errors.codigoPostal}>
                 <input
@@ -384,39 +390,7 @@ export default function PerfilTab({ incidents, loading }) {
         <div className="px-5 py-3.5 border-b border-slate-100">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ayuda y soporte</p>
         </div>
-        <div className="divide-y divide-slate-50">
-          {[
-            { href: "mailto:soporte@cityfixer.com", icon: Mail,           label: "Email",     value: "soporte@cityfixer.com",  hover: "group-hover:text-primary" },
-            { href: "tel:+5493515551234",           icon: Phone,          label: "Teléfono",  value: "+54 9 351 555-1234",     hover: "group-hover:text-primary" },
-            { href: "https://wa.me/5493515555678",  icon: MessageCircle,  label: "WhatsApp",  value: "+54 9 351 555-5678",     hover: "group-hover:text-emerald-600" },
-          ].map(({ href, icon: Icon, label, value, hover }) => (
-            <a key={label} href={href} target={href.startsWith("http") ? "_blank" : undefined}
-              rel="noreferrer"
-              className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors group"
-            >
-              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 shrink-0 group-hover:bg-primary/10 transition-colors">
-                <Icon size={13} className={`text-slate-500 transition-colors ${hover}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">{label}</p>
-                <p className={`text-xs font-medium text-slate-700 transition-colors ${hover}`}>{value}</p>
-              </div>
-              <ChevronRight size={14} className="text-slate-300 shrink-0" />
-            </a>
-          ))}
-        </div>
-        <div className="mx-5 my-3 flex items-start gap-3 bg-slate-50 rounded-xl px-3 py-2.5">
-          <Clock size={13} className="text-slate-400 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">Horario de atención</p>
-            <p className="text-xs text-slate-600 font-medium">Lunes a Viernes</p>
-            <p className="text-xs text-slate-500">08:00 a 18:00 hs</p>
-          </div>
-        </div>
-        <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-[10px] text-slate-400">© 2026 CityFixer</span>
-          <span className="text-[10px] text-slate-400">Versión 1.0.0</span>
-        </div>
+        <SupportInfo />
       </div>
 
       {/* ── Cerrar sesión ─────────────────────────────────────────────── */}
