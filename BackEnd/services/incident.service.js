@@ -220,15 +220,22 @@ const getAllGroups = async () => {
 // HISTORIAL
 // ==========================================
 
-const getIncidentHistory = async (incidentId) => {
+const getIncidentHistory = async (incidentId, requester) => {
   const incident = await Incident.findById(incidentId)
-    .select('title statusHistory')
+    .select('title statusHistory user')
     .populate('statusHistory.status', 'name description')
     .populate('statusHistory.changedBy', 'firstName lastName email role');
 
   if (!incident) {
     const error = new Error('Incidente no encontrado');
     error.status = 404;
+    throw error;
+  }
+
+  const isAdmin = ['admin', 'superAdmin'].includes(requester?.role);
+  if (!isAdmin && incident.user.toString() !== requester?.id?.toString()) {
+    const error = new Error('No tenés permiso para ver el historial de este incidente.');
+    error.status = 403;
     throw error;
   }
 
