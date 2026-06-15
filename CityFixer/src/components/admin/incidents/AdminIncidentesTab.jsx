@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Search, X, Archive } from "lucide-react";
+import { Plus, Search, X, Archive, RefreshCw, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import AdminIncidentList from "./AdminIncidentList";
 import { useStatuses } from "@/hooks/useStatuses";
 import { capitalize, STATUS_LABELS } from "@/lib/incidents";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { syncIncidentsWithAI } from "@/services/api";
 
 function getPriorityLabel(p) {
   if (p <= 2) return "Muy baja";
@@ -30,6 +32,22 @@ export default function AdminIncidentesTab({
   onClearFocus,
 }) {
   const [activeTab, setActiveTab] = useState("activos");
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncAI = async () => {
+    setSyncing(true);
+    try {
+      const { data } = await syncIncidentsWithAI();
+      const { totalEncontrados, procesadosExitosamente } = data.data ?? {};
+      toast.success(`IA sincronizada — Analizados: ${totalEncontrados ?? 0} | Resueltos: ${procesadosExitosamente ?? 0}`);
+      onUpdated?.();
+    } catch {
+      toast.error("No se pudo sincronizar con la IA.");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const [filters, setFilters] = useState({
     status: "todos",
     category: "todas",
@@ -136,14 +154,28 @@ export default function AdminIncidentesTab({
           )}
         </div>
         {!isReadOnly && (
-          <button
-            onClick={onNuevoReporte}
-            className="shrink-0 flex items-center justify-center px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-xl bg-primary hover:bg-celestito text-white text-sm font-semibold gap-1.5 transition-colors"
-          >
-            <Plus size={15} />
-            <span className="hidden sm:inline">Reportar Incidente</span>
-            <span className="sm:hidden">Nuevo</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleSyncAI}
+              disabled={syncing}
+              title="Reintentar análisis de IA en incidentes pendientes"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-primary/40 bg-white hover:bg-primary/5 text-primary text-sm font-semibold transition-colors disabled:opacity-50"
+            >
+              {syncing
+                ? <Loader2 size={15} className="animate-spin" />
+                : <RefreshCw size={15} />
+              }
+              <span className="hidden sm:inline">Sincronizar IA</span>
+            </button>
+            <button
+              onClick={onNuevoReporte}
+              className="flex items-center justify-center px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-xl bg-primary hover:bg-celestito text-white text-sm font-semibold gap-1.5 transition-colors"
+            >
+              <Plus size={15} />
+              <span className="hidden sm:inline">Reportar Incidente</span>
+              <span className="sm:hidden">Nuevo</span>
+            </button>
+          </div>
         )}
       </div>
 

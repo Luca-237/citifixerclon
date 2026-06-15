@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Loader2, AlertTriangle, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,15 @@ export default function IncidentAdminActions({ incident, onUpdated }) {
       await updateIncidentStatus(incident._id, confirmStatus._id);
       onUpdated?.();
       setConfirmStatus(null);
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 409) {
+        toast.error("El grupo ya se encuentra en un estado final y no puede modificarse.");
+        setConfirmStatus(null);
+        onUpdated?.();
+      } else {
+        toast.error(err.response?.data?.error ?? "Error al cambiar el estado.");
+      }
     } finally {
       setLoadingStatus(false);
     }
@@ -90,6 +100,14 @@ export default function IncidentAdminActions({ incident, onUpdated }) {
     try {
       await updateIncidentCategory(incident._id, selectedCategory);
       onUpdated?.();
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 409) {
+        toast.error("El grupo ya se encuentra en un estado final y no puede modificarse.");
+        onUpdated?.();
+      } else {
+        toast.error(err.response?.data?.error ?? "Error al cambiar la categoría.");
+      }
     } finally {
       setLoadingCategory(false);
     }

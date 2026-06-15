@@ -115,6 +115,10 @@ export default function AdminCategoriasTab() {
       setFieldError(true);
       return;
     }
+    if (description.trim().length > 100) {
+      setFormError("La descripción no puede superar los 100 caracteres.");
+      return;
+    }
     setSubmitting(true);
     try {
       await createCategory({
@@ -150,6 +154,10 @@ export default function AdminCategoriasTab() {
   const submitEdit = async () => {
     if (!editForm.name.trim()) {
       setEditError("El nombre es obligatorio.");
+      return;
+    }
+    if (editForm.description.trim().length > 100) {
+      setEditError("La descripción no puede superar los 100 caracteres.");
       return;
     }
     setEditLoading(true);

@@ -65,6 +65,9 @@ export const getIncidentHistory = (id) => api.get(`/api/incidents/${id}/history`
 // Trae el historial de estados del grupo (solo admin/superAdmin)
 export const getGroupHistory = (groupId) => api.get(`/api/incidents/${groupId}/group-history`);
 
+// ─── Admin — IA Sincronización ───────────────────────────────────────────────
+export const syncIncidentsWithAI = () => api.post("/api/incidents/sync-ai");
+
 // ─── Perfil de usuario ────────────────────────────────────────────────────────
 
 // Trae el perfil del usuario autenticado
