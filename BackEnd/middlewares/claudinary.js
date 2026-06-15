@@ -2,6 +2,7 @@
 // se debe rescatar la url de la imagen y parsear al objeto de incidente para grabar la url en la DB
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+const { logError } = require('../utils/logger');
 
 // Asegúrate de configurar Cloudinary con tus variables de entorno
 cloudinary.config({
@@ -55,16 +56,12 @@ const processIncidentData = async (req, res, next) => {
     next();
   // ... (tu lógica de try)
   } catch (error) {
-    console.error('Error en uploadToCloudinary middleware:', error);
-    return res.status(500).json({ 
-      message: 'Error procesando los datos o subiendo archivos (Timeout)', 
-      error: error.message,
-      // 👇 Agregamos el volcado de datos aquí
-      debugInfo: {
-        bodyRecibido: req.body,
-        archivosRecibidos: req.files ? req.files.map(f => ({ nombre: f.originalname, tamaño: f.size, tipo: f.mimetype })) : []
-      }
+    // El volcado de entradas va a consola (no en la respuesta HTTP) para no exponer datos al cliente.
+    logError('middleware.cloudinary', error, {
+      body: req.body,
+      archivos: req.files ? req.files.map(f => ({ nombre: f.originalname, tamano: f.size, tipo: f.mimetype })) : []
     });
+    return res.status(500).json({ error: 'Error procesando los datos o subiendo los archivos.' });
   }
 };
 

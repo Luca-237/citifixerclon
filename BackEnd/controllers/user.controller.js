@@ -1,11 +1,12 @@
 const { getUsers, getUserById, getMyProfile, sendVerification, updateProfile, createUserByAdmin, updateUserProfileByAdmin, getRoles, changeUserRole, banUser } = require('../services/user.service');
+const { respondError } = require('../utils/logger');
 
 const fetchUsers = async (req, res) => {
   try {
     const users = await getUsers();
     res.status(200).json({ success: true, users });
   } catch (error) {
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'users.fetchUsers' });
   }
 };
 
@@ -15,13 +16,7 @@ const fetchUserById = async (req, res) => {
     const user = await getUserById(id);
     res.status(200).json({ success: true, user });
   } catch (error) {
-    if (error.status === 400) {
-      return res.status(400).json({ error: error.message });
-    }
-    if (error.status === 404) {
-      return res.status(404).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'users.fetchUserById', inputs: { userId: req.params.id } });
   }
 };
 
@@ -30,7 +25,7 @@ const fetchRoles = async (req, res) => {
     const roles = await getRoles();
     res.status(200).json({ success: true, roles });
   } catch (error) {
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'users.fetchRoles' });
   }
 };
 
@@ -42,16 +37,7 @@ const updateRole = async (req, res) => {
     const user = await changeUserRole(id, role, req.dbUser._id);
     res.status(200).json({ success: true, user });
   } catch (error) {
-    if (error.status === 400) {
-      return res.status(400).json({ error: error.message });
-    }
-    if (error.status === 403) {
-      return res.status(403).json({ error: error.message });
-    }
-    if (error.status === 404) {
-      return res.status(404).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'users.updateRole', inputs: { targetUserId: req.params.id, newRoleId: req.body.role, requesterId: req.dbUser._id } });
   }
 };
 
@@ -63,16 +49,7 @@ const updateBan = async (req, res) => {
     const user = await banUser(id, isBanned, req.dbUser._id);
     res.status(200).json({ success: true, user });
   } catch (error) {
-    if (error.status === 400) {
-      return res.status(400).json({ error: error.message });
-    }
-    if (error.status === 403) {
-      return res.status(403).json({ error: error.message });
-    }
-    if (error.status === 404) {
-      return res.status(404).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'users.updateBan', inputs: { targetUserId: req.params.id, isBanned: req.body.isBanned, requesterId: req.dbUser._id } });
   }
 };
 
@@ -81,9 +58,7 @@ const sendVerificationCode = async (req, res) => {
     await sendVerification(req.dbUser._id);
     res.status(200).json({ success: true, message: 'Código de verificación enviado al correo.' });
   } catch (error) {
-    if (error.status === 400) return res.status(400).json({ error: error.message });
-    if (error.status === 404) return res.status(404).json({ error: error.message });
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'users.sendVerificationCode', inputs: { userId: req.dbUser._id } });
   }
 };
 
@@ -92,7 +67,7 @@ const fetchMyProfile = async (req, res) => {
     const user = await getMyProfile(req.dbUser._id);
     res.status(200).json({ success: true, user });
   } catch (error) {
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'users.fetchMyProfile', inputs: { userId: req.dbUser._id } });
   }
 };
 
@@ -101,9 +76,7 @@ const patchProfile = async (req, res) => {
     const user = await updateProfile(req.dbUser._id, req.body);
     res.status(200).json({ success: true, user });
   } catch (error) {
-    if (error.status === 400) return res.status(400).json({ error: error.message, details: error.details });
-    if (error.status === 404) return res.status(404).json({ error: error.message });
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'users.patchProfile', inputs: { userId: req.dbUser._id, body: req.body } });
   }
 };
 
@@ -112,11 +85,7 @@ const createUser = async (req, res) => {
     const user = await createUserByAdmin(req.body);
     res.status(201).json({ success: true, user });
   } catch (error) {
-    if (error.status === 400) return res.status(400).json({ error: error.message, details: error.details });
-    if (error.status === 403) return res.status(403).json({ error: error.message });
-    if (error.status === 404) return res.status(404).json({ error: error.message });
-    if (error.status === 409) return res.status(409).json({ error: error.message });
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'users.createUser', inputs: { body: req.body } });
   }
 };
 
@@ -126,9 +95,7 @@ const patchUserProfile = async (req, res) => {
     const user = await updateUserProfileByAdmin(id, req.body);
     res.status(200).json({ success: true, user });
   } catch (error) {
-    if (error.status === 400) return res.status(400).json({ error: error.message, details: error.details });
-    if (error.status === 404) return res.status(404).json({ error: error.message });
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'users.patchUserProfile', inputs: { targetUserId: req.params.id, body: req.body } });
   }
 };
 

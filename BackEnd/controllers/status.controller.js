@@ -1,4 +1,5 @@
 const { getAllStatuses, createStatus, toggleStatus } = require('../services/status.service');
+const { respondError } = require('../utils/logger');
 
 const getAll = async (req, res) => {
   try {
@@ -6,8 +7,7 @@ const getAll = async (req, res) => {
     const statuses = await getAllStatuses(filter);
     res.status(200).json({ success: true, statuses });
   } catch (error) {
-    console.error('Error en getAll statuses:', error);
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'statuses.getAll', inputs: { filter: req.filter } });
   }
 };
 
@@ -17,10 +17,7 @@ const create = async (req, res) => {
     const status = await createStatus({ name, description });
     res.status(201).json({ success: true, status });
   } catch (error) {
-    if (error.status === 400) {
-      return res.status(400).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'statuses.create', inputs: { name: req.body.name, description: req.body.description } });
   }
 };
 
@@ -30,13 +27,7 @@ const toggle = async (req, res) => {
     const status = await toggleStatus(id);
     res.status(200).json({ success: true, status });
   } catch (error) {
-    if (error.status === 400) {
-      return res.status(400).json({ error: error.message });
-    }
-    if (error.status === 404) {
-      return res.status(404).json({ error: error.message });
-    }
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'statuses.toggle', inputs: { statusId: req.params.id } });
   }
 };
 

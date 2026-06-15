@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Send, MapPin, AlertCircle, Loader2, X, ChevronRight, ChevronLeft } from "lucide-react";
 import { postIncidente } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,10 @@ const IncidentForm = ({ onSuccess, onClose }) => {
 
   // ── Errores por campo ──
   const [fieldErrors, setFieldErrors] = useState({});
+
+  const imagenesRef = useRef(imagenes);
+  imagenesRef.current = imagenes;
+  useEffect(() => () => imagenesRef.current.forEach((img) => img.preview && URL.revokeObjectURL(img.preview)), []);
 
   const clearError = (key) =>
     setFieldErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
@@ -243,9 +247,9 @@ const IncidentForm = ({ onSuccess, onClose }) => {
               <ImageUploader
                 imagenes={imagenes}
                 onChange={(nuevas) => {
-  setImagenes(nuevas);
-  clearError("imagenes");
-}}
+                  setImagenes(nuevas);
+                  if (nuevas.length > imagenes.length) clearError("imagenes");
+                }}
                 onRemove={(index) => setImagenes((prev) => prev.filter((_, i) => i !== index))}
               />
               {fieldErrors.imagenes && (

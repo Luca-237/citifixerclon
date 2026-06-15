@@ -98,6 +98,9 @@ export const createCategory = (body) => api.post("/api/categories", body);
 // Activa o desactiva una categoría (solo superAdmin)
 export const toggleCategory = (id) => api.patch(`/api/categories/${id}/toggle`);
 
+// Edita nombre y/o descripción — endpoint pendiente de implementación en backend
+export const updateCategory = (id, body) => api.patch(`/api/categories/${id}`, body);
+
 // ─── Estados ─────────────────────────────────────────────────────────────────
 
 // Trae todos los estados disponibles

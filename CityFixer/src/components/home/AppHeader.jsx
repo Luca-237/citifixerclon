@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { LogOut, Siren, ShieldOff, User, Home as HomeIcon, FileText, HelpCircle, Mail, Phone, MessageCircle, Clock, Bell, CheckCheck } from "lucide-react";
+import { LogOut, Siren, ShieldOff, User, Home as HomeIcon, FileText, HelpCircle, Bell, CheckCheck, ArrowRight } from "lucide-react";
+import SupportInfo from "./SupportInfo";
+import { STATUS_LABELS_PUBLIC } from "@/lib/incidents";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -29,6 +31,13 @@ function relativeTime(dateStr) {
   if (mins < 60) return `hace ${mins} min`;
   if (hours < 24) return `hace ${hours} h`;
   return `hace ${days} d`;
+}
+
+// Extrae el nombre del estado del mensaje y lo traduce
+function extractStatusLabel(message) {
+  const match = /"([^"]+)"/.exec(message);
+  const raw = match?.[1];
+  return STATUS_LABELS_PUBLIC[raw] ?? raw ?? "actualizado";
 }
 
 // ── Panel de notificaciones ───────────────────────────────────────────────────
@@ -63,24 +72,46 @@ function NotificationPanel({ onNavigate }) {
             <p className="text-xs text-slate-400 mt-0.5">Te avisaremos cuando haya novedades.</p>
           </div>
         ) : (
-          notifications.map((noti) => (
-            <button
-              key={noti._id}
-              onClick={() => onNavigate(noti)}
-              className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-3 ${
-                !noti.isRead ? "bg-blue-50 hover:bg-blue-100/70" : "hover:bg-slate-50"
-              }`}
-            >
-              {/* Indicador no leída */}
-              <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!noti.isRead ? "bg-blue-500" : "bg-slate-200"}`} />
-              <div className="flex-1 min-w-0">
-                <p className={`text-xs leading-snug ${!noti.isRead ? "font-semibold text-slate-900" : "font-normal text-slate-500"}`}>
-                  {noti.message}
-                </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">{relativeTime(noti.createdAt)}</p>
-              </div>
-            </button>
-          ))
+          notifications.map((noti) => {
+            const statusLabel = extractStatusLabel(noti.message);
+            return (
+              <button
+                key={noti._id}
+                onClick={() => onNavigate(noti)}
+                className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-3 ${
+                  !noti.isRead ? "bg-primary/[0.04] hover:bg-primary/[0.07]" : "hover:bg-slate-50"
+                }`}
+              >
+                {/* Indicador no leída */}
+                <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${!noti.isRead ? "bg-primary" : "bg-slate-200"}`} />
+
+                <div className="flex-1 min-w-0">
+                  {/* Título del incidente */}
+                  {noti.incidentTitle ? (
+                    <p className={`text-xs truncate mb-0.5 ${!noti.isRead ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}>
+                      {noti.incidentTitle}
+                    </p>
+                  ) : (
+                    <p className={`text-xs mb-0.5 ${!noti.isRead ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}>
+                      Tu incidente
+                    </p>
+                  )}
+
+                  {/* Estado legible */}
+                  <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                    Pasó a
+                    <span className={`font-semibold ${!noti.isRead ? "text-primary" : "text-slate-500"}`}>
+                      {statusLabel}
+                    </span>
+                  </p>
+
+                  <p className="text-[10px] text-slate-300 mt-1">{relativeTime(noti.createdAt)}</p>
+                </div>
+
+                <ArrowRight size={12} className="text-slate-300 mt-1 shrink-0" />
+              </button>
+            );
+          })
         )}
       </div>
     </div>
@@ -122,47 +153,7 @@ export default function AppHeader({ user, isBanned, activeTab, onTabChange }) {
               </div>
             </div>
           </DialogHeader>
-          <div className="px-5 py-4 space-y-3">
-            <a href="mailto:soporte@cityfixer.com" className="flex items-center gap-3 group">
-              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 shrink-0 group-hover:bg-primary/10 transition-colors">
-                <Mail size={13} className="text-slate-500 group-hover:text-primary transition-colors" />
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Email</p>
-                <p className="text-xs font-medium text-slate-700 group-hover:text-primary transition-colors">soporte@cityfixer.com</p>
-              </div>
-            </a>
-            <a href="tel:+5493515551234" className="flex items-center gap-3 group">
-              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 shrink-0 group-hover:bg-primary/10 transition-colors">
-                <Phone size={13} className="text-slate-500 group-hover:text-primary transition-colors" />
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Teléfono</p>
-                <p className="text-xs font-medium text-slate-700 group-hover:text-primary transition-colors">+54 9 351 555-1234</p>
-              </div>
-            </a>
-            <a href="https://wa.me/5493515555678" target="_blank" rel="noreferrer" className="flex items-center gap-3 group">
-              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 shrink-0 group-hover:bg-emerald-50 transition-colors">
-                <MessageCircle size={13} className="text-slate-500 group-hover:text-emerald-600 transition-colors" />
-              </div>
-              <div>
-                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">WhatsApp</p>
-                <p className="text-xs font-medium text-slate-700 group-hover:text-emerald-600 transition-colors">+54 9 351 555-5678</p>
-              </div>
-            </a>
-          </div>
-          <div className="mx-5 mb-4 flex items-start gap-3 bg-slate-50 rounded-lg px-3 py-2.5">
-            <Clock size={13} className="text-slate-400 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">Horario de atención</p>
-              <p className="text-xs text-slate-600 font-medium">Lunes a Viernes</p>
-              <p className="text-xs text-slate-500">08:00 a 18:00 hs</p>
-            </div>
-          </div>
-          <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-[10px] text-slate-400">© 2026 CityFixer</span>
-            <span className="text-[10px] text-slate-400">Versión 1.0.0</span>
-          </div>
+          <SupportInfo />
         </DialogContent>
       </Dialog>
 

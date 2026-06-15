@@ -8,8 +8,9 @@ const validateVideoDuration = (previewUrl) => {
   return new Promise((resolve) => {
     const video = document.createElement("video");
     video.preload = "metadata";
-    video.onloadedmetadata = () => resolve(video.duration <= 20);
-    video.onerror = () => resolve(false);
+    const timeout = setTimeout(() => resolve(false), 5000);
+    video.onloadedmetadata = () => { clearTimeout(timeout); resolve(video.duration <= 20); };
+    video.onerror = () => { clearTimeout(timeout); resolve(false); };
     video.src = previewUrl;
   });
 };
@@ -25,9 +26,10 @@ export default function ImageUploader({ imagenes, onChange, onRemove }) {
     const files = Array.from(e.target.files).slice(0, disponibles);
 
     const nuevas = [];
+    const errors = [];
     for (const file of files) {
       if (file.size > 10485760) {
-        setError("El archivo supera el límite de 10MB.");
+        errors.push("Un archivo supera el límite de 10MB.");
         continue;
       }
 
@@ -38,7 +40,7 @@ export default function ImageUploader({ imagenes, onChange, onRemove }) {
         const isValid = await validateVideoDuration(preview);
         if (!isValid) {
           URL.revokeObjectURL(preview);
-          setError("El video supera los 20 segundos permitidos.");
+          errors.push("Un video supera los 20 segundos permitidos.");
           continue;
         }
       }
@@ -46,6 +48,7 @@ export default function ImageUploader({ imagenes, onChange, onRemove }) {
       nuevas.push({ file, preview, type: isVideo ? "video" : "image" });
     }
 
+    if (errors.length) setError([...new Set(errors)].join(" "));
     onChange([...imagenes, ...nuevas]);
     e.target.value = "";
   };

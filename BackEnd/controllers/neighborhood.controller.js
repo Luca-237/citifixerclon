@@ -1,11 +1,12 @@
 const { getNeighborhoods } = require('../services/neighborhood.service');
+const { respondError } = require('../utils/logger');
 
 const fetchNeighborhoods = async (req, res) => {
   try {
     const neighborhoods = await getNeighborhoods();
     res.status(200).json({ success: true, neighborhoods });
   } catch (error) {
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'neighborhoods.fetch' });
   }
 };
 

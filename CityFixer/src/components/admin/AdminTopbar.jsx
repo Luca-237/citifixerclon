@@ -125,8 +125,10 @@ export default function AdminTopbar({
   const { user } = useUser();
   const roleLabel = dbRole === "superAdmin" ? "Super Admin" : "Admin";
 
-  const [search, setSearch]   = useState("");
-  const containerRef          = useRef(null);
+  const [search, setSearch]       = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const containerRef              = useRef(null);
+  const mobileInputRef            = useRef(null);
 
   const trimmed = search.trim();
   const results = trimmed.length > 0
@@ -157,6 +159,17 @@ export default function AdminTopbar({
     onTabChange?.("incidentes");
     onFocusIncident?.(incident._id);
     setSearch("");
+    setSearchOpen(false);
+  };
+
+  const openMobileSearch = () => {
+    setSearchOpen(true);
+    setTimeout(() => mobileInputRef.current?.focus(), 50);
+  };
+
+  const closeMobileSearch = () => {
+    setSearch("");
+    setSearchOpen(false);
   };
 
   const handleNotifSelect = (incident) => {
@@ -167,10 +180,63 @@ export default function AdminTopbar({
   const { total } = notifications;
 
   return (
-    <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-5 shrink-0 z-10">
+    <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-5 shrink-0 z-10 relative">
+
+      {/* ── Overlay búsqueda mobile ── */}
+      {searchOpen && (
+        <div className="sm:hidden absolute inset-0 bg-white flex items-center px-4 gap-3 z-20" onMouseDown={(e) => e.stopPropagation()}>
+          <Search size={15} className="text-gray-400 shrink-0" />
+          <input
+            ref={mobileInputRef}
+            type="text"
+            placeholder="Buscar incidentes..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 text-sm bg-transparent outline-none placeholder:text-gray-400 text-slate-800"
+          />
+          <button onClick={closeMobileSearch} className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={18} />
+          </button>
+          {/* Dropdown resultados mobile */}
+          {trimmed && (
+            <div className="absolute top-full left-0 right-0 bg-white border-t border-gray-100 shadow-lg overflow-hidden z-50">
+              {results.length === 0 ? (
+                <p className="px-4 py-3 text-sm text-gray-400 text-center">
+                  Sin resultados para &ldquo;{trimmed}&rdquo;
+                </p>
+              ) : (
+                <ul>
+                  {results.map((inc) => {
+                    const statusName = inc.status?.name;
+                    const badgeCls   = STATUS_BADGE[statusName] ?? "bg-gray-50 text-gray-500 border-gray-200";
+                    return (
+                      <li
+                        key={inc._id}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleSearchSelect(inc)}
+                        className="px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between gap-3 border-b border-gray-50 last:border-0 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">{inc.representativeId?.title}</p>
+                          {inc.representativeId?.location?.address && (
+                            <p className="text-xs text-slate-400 truncate mt-0.5">{inc.representativeId.location.address}</p>
+                          )}
+                        </div>
+                        <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${badgeCls}`}>
+                          {STATUS_LABELS[statusName] ?? capitalize(statusName ?? "—")}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Izquierda: hamburguesa + buscador ── */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-1 min-w-0 mr-6">
         <button
           onClick={onMobileMenuOpen}
           className="lg:hidden p-2 -ml-1 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
@@ -180,14 +246,14 @@ export default function AdminTopbar({
         </button>
 
         {/* Buscador con dropdown */}
-        <div ref={containerRef} className="relative hidden sm:flex items-center">
+        <div ref={containerRef} className="relative hidden sm:flex items-center flex-1 max-w-xl">
           <Search size={15} className="absolute left-3 text-gray-400 pointer-events-none z-10" />
           <input
             type="text"
             placeholder="Buscar incidentes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 pr-8 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg w-72 focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition placeholder:text-gray-400"
+            className="pl-9 pr-8 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition placeholder:text-gray-400"
           />
           {trimmed && (
             <button
@@ -238,6 +304,15 @@ export default function AdminTopbar({
 
       {/* ── Derecha: campana + avatar ── */}
       <div className="flex items-center gap-3">
+
+        {/* Lupa mobile */}
+        <button
+          onClick={openMobileSearch}
+          className="sm:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+          aria-label="Buscar"
+        >
+          <Search size={20} />
+        </button>
 
         {/* Campana con dropdown de notificaciones */}
         <DropdownMenu>

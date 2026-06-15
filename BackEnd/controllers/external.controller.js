@@ -1,11 +1,12 @@
 const { requestExternalOtp, validateExternalOtp, getExternalData } = require('../services/external.service');
+const { respondError } = require('../utils/logger');
 
 const requestOtp = async (req, res) => {
   try {
     await requestExternalOtp(req.dbUser._id, req.dbUser.email);
     res.status(200).json({ success: true, message: 'Código enviado al correo.' });
   } catch (error) {
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    respondError(res, error, { context: 'external.requestOtp', inputs: { userId: req.dbUser._id, email: req.dbUser.email } });
   }
 };
 
@@ -18,9 +19,8 @@ const getData = async (req, res) => {
     console.log(`[external] datos entregados — IP: ${ip}`);
     res.status(200).json({ success: true, data });
   } catch (error) {
-    console.warn(`[external] acceso rechazado — IP: ${ip} — ${error.message}`);
-    if (error.status === 401) return res.status(401).json({ error: error.message });
-    res.status(500).json({ error: 'Error interno del servidor.' });
+    // Dejamos rastro del rechazo con la IP que lo intentó (el OTP se redacta solo).
+    respondError(res, error, { context: 'external.getData', inputs: { ip, otpCode: req.otpCode } });
   }
 };
 

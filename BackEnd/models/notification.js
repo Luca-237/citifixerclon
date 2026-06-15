@@ -27,6 +27,10 @@ const notificationSchema = new mongoose.Schema(
       ref: 'Incident',
       default: null
     },
+    incidentTitle: {
+      type: String,
+      default: null
+    },
     isRead: {
       type: Boolean,
       default: false,

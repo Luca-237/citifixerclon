@@ -1,15 +1,16 @@
 const Notification = require('../models/notification');
 const { getIo } = require('./socket.service');
 
-// recipients: [{ userId, incidentId }]
-// cada usuario recibe su propio incidentId para navegar al incidente correcto
+// recipients: [{ userId, incidentId, incidentTitle }]
+// cada usuario recibe su propio incidentId/title para navegar e identificar el incidente
 const createNotifications = async (recipients, { type, message, groupId }) => {
-  const docs = recipients.map(({ userId, incidentId }) => ({
+  const docs = recipients.map(({ userId, incidentId, incidentTitle }) => ({
     userId,
     type,
     message,
     groupId,
-    incidentId
+    incidentId,
+    incidentTitle: incidentTitle ?? null
   }));
   const created = await Notification.insertMany(docs);
 
@@ -22,6 +23,7 @@ const createNotifications = async (recipients, { type, message, groupId }) => {
         message: notification.message,
         groupId: notification.groupId,
         incidentId: notification.incidentId,
+        incidentTitle: notification.incidentTitle,
         isRead: false,
         createdAt: notification.createdAt
       });

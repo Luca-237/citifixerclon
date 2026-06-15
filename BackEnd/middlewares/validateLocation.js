@@ -85,12 +85,11 @@ function isInsidePolygon(lat, lng, polygon) {
 
 const validateLocation = (req, res, next) => {
   const { location } = req.body;
+  const { lat, lng } = location || {};
 
-  if (!location?.lat || !location?.lng) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     return res.status(400).json({ error: 'La ubicación es obligatoria.' });
   }
-
-  const { lat, lng } = location;
 
   if (!isInsidePolygon(lat, lng, VILLA_MARIA_POLYGON)) {
     return res.status(400).json({

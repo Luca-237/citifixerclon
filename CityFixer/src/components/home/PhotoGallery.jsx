@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 // Detecta si una entrada es video, aceptando tanto string URL como objeto { url, type }
 function normalizeMedia(item) {
+  if (!item) return { url: "", type: "image" };
   if (typeof item === "string") {
     const isVideo = /\.(mp4|webm|mov|ogg)(\?|$)/i.test(item);
     return { url: item, type: isVideo ? "video" : "image" };
@@ -70,16 +71,25 @@ export default function PhotoGallery({ photos, compact = false }) {
     );
   }
 
+  const compactCols =
+    photos.length === 1 ? "grid-cols-1" :
+    photos.length === 2 ? "grid-cols-2" :
+    "grid-cols-3";
+
   return (
     <>
       {compact ? (
-        <div className="grid grid-cols-3 gap-2">
+        <div className={`grid ${compactCols} gap-2`}>
           {photos.map((item, i) => (
             <MediaThumb
-              key={i}
+              key={normalizeMedia(item).url || i}
               item={item}
               onClick={() => setLightbox(item)}
-              className="aspect-square w-full rounded-lg object-cover"
+              className={
+                photos.length === 1
+                  ? "w-full max-h-72 rounded-xl object-cover"
+                  : "aspect-square w-full rounded-xl object-cover"
+              }
             />
           ))}
         </div>
@@ -93,17 +103,17 @@ export default function PhotoGallery({ photos, compact = false }) {
         <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
           {photos.map((item, i) => (
             <MediaThumb
-              key={i}
+              key={normalizeMedia(item).url || i}
               item={item}
               onClick={() => setLightbox(item)}
-              className="h-40 w-40 shrink-0 rounded-2xl object-cover"
+              className="h-52 w-52 shrink-0 rounded-2xl object-cover"
             />
           ))}
         </div>
       )}
 
       <Dialog open={!!lightbox} onOpenChange={() => setLightbox(null)}>
-        <DialogContent className="max-w-3xl p-0 bg-black border-none overflow-hidden" aria-describedby={undefined}>
+        <DialogContent className="w-[95vw] sm:max-w-[90vw] lg:max-w-5xl p-0 bg-black border-none overflow-hidden" aria-describedby={undefined}>
           <DialogTitle className="sr-only">Media ampliada</DialogTitle>
           {lightbox && <LightboxContent item={lightbox} />}
         </DialogContent>

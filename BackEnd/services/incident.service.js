@@ -40,7 +40,7 @@ const validateIncidentData = (data) => {
     errors.push('Se requiere entre 1 y 3 fotos.');
   }
 
-  if (!data.location?.lat || !data.location?.lng) {
+  if (!Number.isFinite(data.location?.lat) || !Number.isFinite(data.location?.lng)) {
     errors.push('La ubicación es obligatoria.');
   }
 
@@ -115,7 +115,16 @@ const createIncident = async (incidentData, userId, aiData, userRole = 'user') =
   if (puedeAgruparse) {
     const grupoExistente = await IncidentGroup.findById(aiData.idGrupoCandidato);
 
-    if (grupoExistente) {
+    // Un grupo con un dudoso sin revisar debe quedar AISLADO hasta que un admin lo resuelva.
+    // Si acumulara reportes nuevos, al aceptar el dudoso (resolveDubious) se cancelaría el grupo
+    // y esos reportes quedarían huérfanos. En ese caso el nuevo incidente arma su propio grupo.
+    const tieneDudosoSinRevisar = grupoExistente && await Incident.exists({
+      _id: { $in: grupoExistente.incidents },
+      is_dubious: true,
+      is_cancelled: { $ne: true }
+    });
+
+    if (grupoExistente && !tieneDudosoSinRevisar) {
       newIncident.group = grupoExistente._id;
       const savedIncident = await newIncident.save();
 
@@ -220,15 +229,22 @@ const getAllGroups = async () => {
 // HISTORIAL
 // ==========================================
 
-const getIncidentHistory = async (incidentId) => {
+const getIncidentHistory = async (incidentId, requester) => {
   const incident = await Incident.findById(incidentId)
-    .select('title statusHistory')
+    .select('title statusHistory user')
     .populate('statusHistory.status', 'name description')
     .populate('statusHistory.changedBy', 'firstName lastName email role');
 
   if (!incident) {
     const error = new Error('Incidente no encontrado');
     error.status = 404;
+    throw error;
+  }
+
+  const isAdmin = ['admin', 'superAdmin'].includes(requester?.role);
+  if (!isAdmin && incident.user.toString() !== requester?.id?.toString()) {
+    const error = new Error('No tenés permiso para ver el historial de este incidente.');
+    error.status = 403;
     throw error;
   }
 
@@ -256,6 +272,12 @@ const getGroupHistory = async (groupId) => {
 
 const FINAL_STATUSES = ['rechazado', 'resuelto', 'cancelado'];
 
+const VALID_TRANSITIONS = {
+  pendiente:  ['aceptado', 'rechazado'],
+  aceptado:   ['en_proceso', 'rechazado'],
+  en_proceso: ['resuelto', 'rechazado'],
+};
+
 const updateGroupStatus = async (groupId, newStatusId, userId) => {
   if (!mongoose.Types.ObjectId.isValid(newStatusId)) {
     const error = new Error('El estado enviado no es válido.');
@@ -272,7 +294,7 @@ const updateGroupStatus = async (groupId, newStatusId, userId) => {
 
   if (FINAL_STATUSES.includes(group.status?.name)) {
     const error = new Error(`El grupo está en estado "${group.status.name}" y no puede ser modificado.`);
-    error.status = 400;
+    error.status = 409;
     throw error;
   }
 
@@ -280,6 +302,20 @@ const updateGroupStatus = async (groupId, newStatusId, userId) => {
     Incident.exists({ _id: { $in: group.incidents }, is_dubious: true, is_cancelled: { $ne: true } }),
     Status.findById(newStatusId)
   ]);
+
+  if (!newStatus) {
+    const error = new Error('El estado enviado no existe.');
+    error.status = 400;
+    throw error;
+  }
+
+  const currentStatusName = group.status?.name;
+  const allowedTransitions = VALID_TRANSITIONS[currentStatusName];
+  if (!allowedTransitions || !allowedTransitions.includes(newStatus?.name)) {
+    const error = new Error(`No se puede pasar de "${currentStatusName}" a "${newStatus?.name}".`);
+    error.status = 409;
+    throw error;
+  }
 
   if (hasDubious && !['aceptado', 'rechazado'].includes(newStatus?.name)) {
     const error = new Error('Un grupo con incidente dudoso solo puede cambiar a "aceptado" o "rechazado".');
@@ -303,12 +339,12 @@ const updateGroupStatus = async (groupId, newStatusId, userId) => {
   // Notificar a cada usuario con su propio incidente
   const affectedIncidents = await Incident.find(
     { _id: { $in: group.incidents }, is_cancelled: { $ne: true } },
-    { user: 1 }
+    { user: 1, title: 1 }
   );
 
   const recipients = affectedIncidents
     .filter(i => i.user)
-    .map(i => ({ userId: i.user, incidentId: i._id }));
+    .map(i => ({ userId: i.user, incidentId: i._id, incidentTitle: i.title }));
 
   if (recipients.length) {
     await createNotifications(recipients, {
@@ -328,18 +364,21 @@ const updateGroupCategory = async (groupId, newCategoryId) => {
     throw error;
   }
 
-  const group = await IncidentGroup.findByIdAndUpdate(
-    groupId,
-    { $set: { category: newCategoryId } },
-    { returnDocument: 'after' }
-  );
-
+  const group = await IncidentGroup.findById(groupId).populate('status', 'name');
   if (!group) {
     const error = new Error('Grupo no encontrado.');
     error.status = 404;
     throw error;
   }
 
+  if (FINAL_STATUSES.includes(group.status?.name)) {
+    const error = new Error(`El grupo está en estado "${group.status.name}" y no puede ser modificado.`);
+    error.status = 409;
+    throw error;
+  }
+
+  group.category = newCategoryId;
+  await group.save();
   return group;
 };
 
@@ -351,18 +390,21 @@ const updateGroupPriority = async (groupId, priority) => {
     throw error;
   }
 
-  const group = await IncidentGroup.findByIdAndUpdate(
-    groupId,
-    { $set: { priority: value } },
-    { returnDocument: 'after' }
-  );
-
+  const group = await IncidentGroup.findById(groupId).populate('status', 'name');
   if (!group) {
     const error = new Error('Grupo no encontrado.');
     error.status = 404;
     throw error;
   }
 
+  if (FINAL_STATUSES.includes(group.status?.name)) {
+    const error = new Error(`El grupo está en estado "${group.status.name}" y no puede ser modificado.`);
+    error.status = 409;
+    throw error;
+  }
+
+  group.priority = value;
+  await group.save();
   return group;
 };
 
@@ -377,10 +419,16 @@ const resolveDubious = async (groupId, action, adminId) => {
     throw error;
   }
 
-  const group = await IncidentGroup.findById(groupId);
+  const group = await IncidentGroup.findById(groupId).populate('status', 'name');
   if (!group) {
     const error = new Error('Grupo no encontrado.');
     error.status = 404;
+    throw error;
+  }
+
+  if (FINAL_STATUSES.includes(group.status?.name)) {
+    const error = new Error(`El grupo está en estado "${group.status.name}" y no puede ser modificado.`);
+    error.status = 409;
     throw error;
   }
 
@@ -511,6 +559,13 @@ const cancelIncident = async (incidentId, userId) => {
     throw error;
   }
 
+  const group = await IncidentGroup.findById(incident.group).populate('status');
+  if (group && FINAL_STATUSES.includes(group.status?.name?.toLowerCase())) {
+    const error = new Error('El reporte pertenece a un grupo ya finalizado y no puede cancelarse.');
+    error.status = 409;
+    throw error;
+  }
+
   const currentStatusName = incident.status?.name?.toLowerCase();
   if (!CANCELLABLE_STATUSES.includes(currentStatusName)) {
     const error = new Error('El incidente no puede cancelarse en su estado actual.');
@@ -534,7 +589,6 @@ const cancelIncident = async (incidentId, userId) => {
     { returnDocument: 'after' }
   );
 
-  const group = await IncidentGroup.findById(incident.group);
   if (group) {
     group.priority = Math.max(group.priority - 1, 1);
 
@@ -545,7 +599,7 @@ const cancelIncident = async (incidentId, userId) => {
 
     if (remainingCount === 0) {
       group.status = cancelledStatus._id;
-      group.statusHistory.push({ status: cancelledStatus._id, changedBy: userId, source: 'user' });
+      group.statusHistory.push({ status: cancelledStatus._id, changedBy: userId, source: 'system' });
       group.finalizedAt = new Date();
     } else if (group.representativeId.toString() === incidentId.toString()) {
       const remaining = await Incident.find({
