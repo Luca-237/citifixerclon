@@ -241,7 +241,7 @@ const IncidentForm = ({ onSuccess, onClose }) => {
 
             <div className="space-y-1.5">
               <Label className="text-slate-700 font-semibold text-sm">
-                Fotos o videos
+                Fotos/Videos
                 <span className="text-slate-400 font-normal ml-1">(1–3)</span>
               </Label>
               <ImageUploader
