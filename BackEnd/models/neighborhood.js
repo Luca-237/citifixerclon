@@ -20,4 +20,5 @@ const neighborhoodSchema = new mongoose.Schema({
   }
 });
 
+neighborhoodSchema.index({ geometry: '2dsphere' });
 module.exports = mongoose.model('Neighborhood', neighborhoodSchema);

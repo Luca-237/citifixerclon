@@ -48,6 +48,13 @@ const incidentGroupSchema = new mongoose.Schema({
       ref: 'Incident'
     }
   ],
+
+  neighborhood: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Neighborhood',
+    default: null
+  },
+
   ai_suggestion: {
     confianza: { type: Number, default: null },
     razon: { type: String, default: null },

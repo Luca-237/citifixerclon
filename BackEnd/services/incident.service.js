@@ -2,8 +2,9 @@ const Incident = require('../models/incident');
 const IncidentGroup = require('../models/incidentGroup');
 const Status = require('../models/status');
 const User = require('../models/user');
+const Neighborhood = require('../models/neighborhood'); 
 const mongoose = require('mongoose');
-const { analizarIncidenteIA } = require('./openai.service'); // <--- NUEVA LÍNEA
+const { analizarIncidenteIA } = require('./openai.service');
 const { createNotifications } = require('./notification.service');
 
 const CONFIANZA_UMBRAL = 0.85;
@@ -154,6 +155,27 @@ const createIncident = async (incidentData, userId, aiData, userRole = 'user') =
 
   const incidentId = new mongoose.Types.ObjectId();
 
+  let neighborhoodId = null;
+  if (incidentData.location && Number.isFinite(incidentData.location.lat) && Number.isFinite(incidentData.location.lng)) {
+    const point = {
+      type: "Point",
+      coordinates: [incidentData.location.lng, incidentData.location.lat]
+    };
+
+    const foundNeighborhood = await Neighborhood.findOne({
+      geometry: {
+        $geoIntersects: {
+          $geometry: point
+        }
+      }
+    });
+
+    if (foundNeighborhood) {
+      neighborhoodId = foundNeighborhood._id;
+    }
+
+  }
+
   const nuevoGrupo = new IncidentGroup({
     status: grupoStatusId,
     statusHistory: [{ status: grupoStatusId, changedBy, source }],
@@ -162,7 +184,8 @@ const createIncident = async (incidentData, userId, aiData, userRole = 'user') =
     representativeId: incidentId,
     incidents: [incidentId],
     is_emergency: aiData?.isEmergency || false,
-    ai_suggestion: aiSuggestion
+    ai_suggestion: aiSuggestion,
+    neighborhood: neighborhoodId 
   });
 
   const savedGrupo = await nuevoGrupo.save();
@@ -221,6 +244,7 @@ const getAllGroups = async () => {
     })
     .populate('status', 'name description')
     .populate('category', 'name description')
+    .populate('neighborhood', 'name') 
     .populate('statusHistory.status', 'name description')
     .populate('statusHistory.changedBy', 'firstName lastName email')
     .sort({ updatedAt: 1, createdAt: -1 });
