@@ -52,13 +52,13 @@ const analizarIncidenteIA = async (title, description, gruposCercanos = []) => {
          - "isEmergency": true si requiere intervención urgente de policía, bomberos o ambulancia (accidentes graves, incendios, etc).
          - Un reporte puede ser rechazado Y emergencia al mismo tiempo.
 
-      3. PRIORIDAD: número entero del 1 (MÍNIMA urgencia) al 10 (MÁXIMA urgencia).
+      3. PRIORIDAD: número entero del 1 (MÍNIMO prioridad) al 10 (MÁXIMA prioridad).
          IMPORTANTE: 1 es la prioridad MÁS BAJA y 10 es la MÁS ALTA.
          Guía orientativa:
          - 1-2: problema estético o muy menor sin impacto en la circulación (ej. pintada en pared, baldosa suelta en zona poco transitada)
          - 3-4: molestia moderada sin riesgo (ej. bache pequeño en calle secundaria, luminaria apagada en zona iluminada)
-         - 5-6: problema que afecta la movilidad o accesibilidad de personas (ej. obstrucción de rampa para discapacitados, bache grande en avenida)
-         - 7-8: riesgo real de accidente o daño (ej. árbol inclinado sobre vereda, pozo profundo sin señalizar en zona transitada)
+         - 5-6: problema que afecta la movilidad o accesibilidad de personas (ej. obstrucción de rampa para discapacitados, bache mediano en calle transitada, semaforo descompuesto)
+         - 7-8: riesgo real de accidente o daño (ej. árbol inclinado sobre vereda, pozo profundo sin señalizar en zona transitada, bache grande en avenida)
          - 9-10: peligro inminente que requiere atención urgente (ej. árbol caído bloqueando calle, cable eléctrico caído, inundación activa)
 
       4. CATEGORÍA: sugiere una (ej: "bache", "alumbrado", "basura", "vandalismo", "otro").

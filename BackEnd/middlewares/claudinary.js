@@ -2,7 +2,6 @@
 // se debe rescatar la url de la imagen y parsear al objeto de incidente para grabar la url en la DB
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
-const { logError } = require('../utils/logger');
 
 // Asegúrate de configurar Cloudinary con tus variables de entorno
 cloudinary.config({
@@ -11,11 +10,41 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Paso 1: Multer parsea el request y guarda en memoria RAM
+// 1. Filtro estricto de formatos admitidos (MIME types)
+const fileFilter = (req, file, cb) => {
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+  
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    // El formato es válido, aceptamos el archivo
+    cb(null, true);
+  } else {
+    // Formato inválido, rechazamos y lanzamos un error claro
+    cb(new Error(`Formato no soportado: ${file.mimetype}. Solo se permiten imágenes PNG, JPEG, WEBP o videos MP4.`), false);
+  }
+};
+
+// Paso 1: Configuración de Multer con almacenamiento en RAM, límites y filtros
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // Límite de 10MB por seguridad
+  limits: { fileSize: 10 * 1024 * 1024 }, // Límite de 10MB por seguridad
+  fileFilter: fileFilter
 });
+
+// Middleware envoltorio para atrapar errores de Multer (tamaño, formato, cantidad)
+const handleMulterUpload = (req, res, next) => {
+  const multerUpload = upload.array('photos', 3);
+  
+  multerUpload(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Error de validación al cargar el archivo', 
+        error: err.message 
+      });
+    }
+    next();
+  });
+};
 
 // Pasos 2 y 3: Lógica de subida y parseo
 const processIncidentData = async (req, res, next) => {
@@ -54,16 +83,19 @@ const processIncidentData = async (req, res, next) => {
 
     // Todo listo, pasamos el objeto req limpio al Controller
     next();
-  // ... (tu lógica de try)
   } catch (error) {
-    // El volcado de entradas va a consola (no en la respuesta HTTP) para no exponer datos al cliente.
-    logError('middleware.cloudinary', error, {
-      body: req.body,
-      archivos: req.files ? req.files.map(f => ({ nombre: f.originalname, tamano: f.size, tipo: f.mimetype })) : []
+    console.error('Error en uploadToCloudinary middleware:', error);
+    return res.status(500).json({ 
+      message: 'Error procesando los datos o subiendo archivos (Timeout)', 
+      error: error.message,
+      // Agregamos el volcado de datos aquí
+      debugInfo: {
+        bodyRecibido: req.body,
+        archivosRecibidos: req.files ? req.files.map(f => ({ nombre: f.originalname, tamaño: f.size, tipo: f.mimetype })) : []
+      }
     });
-    return res.status(500).json({ error: 'Error procesando los datos o subiendo los archivos.' });
   }
 };
 
-// Exportamos el middleware como un arreglo. Express ejecutará upload.array primero, y processIncidentData después.
-module.exports = [upload.array('photos', 3), processIncidentData];
+// Exportamos usando nuestro nuevo envoltorio en lugar de `upload.array` directamente
+module.exports = [handleMulterUpload, processIncidentData];

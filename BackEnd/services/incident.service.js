@@ -2,7 +2,9 @@ const Incident = require('../models/incident');
 const IncidentGroup = require('../models/incidentGroup');
 const Status = require('../models/status');
 const User = require('../models/user');
+const Neighborhood = require('../models/neighborhood'); 
 const mongoose = require('mongoose');
+const { analizarIncidenteIA } = require('./openai.service');
 const { createNotifications } = require('./notification.service');
 
 const CONFIANZA_UMBRAL = 0.85;
@@ -153,6 +155,27 @@ const createIncident = async (incidentData, userId, aiData, userRole = 'user') =
 
   const incidentId = new mongoose.Types.ObjectId();
 
+  let neighborhoodId = null;
+  if (incidentData.location && Number.isFinite(incidentData.location.lat) && Number.isFinite(incidentData.location.lng)) {
+    const point = {
+      type: "Point",
+      coordinates: [incidentData.location.lng, incidentData.location.lat]
+    };
+
+    const foundNeighborhood = await Neighborhood.findOne({
+      geometry: {
+        $geoIntersects: {
+          $geometry: point
+        }
+      }
+    });
+
+    if (foundNeighborhood) {
+      neighborhoodId = foundNeighborhood._id;
+    }
+
+  }
+
   const nuevoGrupo = new IncidentGroup({
     status: grupoStatusId,
     statusHistory: [{ status: grupoStatusId, changedBy, source }],
@@ -161,7 +184,8 @@ const createIncident = async (incidentData, userId, aiData, userRole = 'user') =
     representativeId: incidentId,
     incidents: [incidentId],
     is_emergency: aiData?.isEmergency || false,
-    ai_suggestion: aiSuggestion
+    ai_suggestion: aiSuggestion,
+    neighborhood: neighborhoodId 
   });
 
   const savedGrupo = await nuevoGrupo.save();
@@ -220,6 +244,7 @@ const getAllGroups = async () => {
     })
     .populate('status', 'name description')
     .populate('category', 'name description')
+    .populate('neighborhood', 'name') 
     .populate('statusHistory.status', 'name description')
     .populate('statusHistory.changedBy', 'firstName lastName email')
     .sort({ updatedAt: 1, createdAt: -1 });
@@ -620,6 +645,59 @@ const cancelIncident = async (incidentId, userId) => {
 };
 
 // ==========================================
+// SINCRONIZACIÓN MANUAL DE IA (FALLBACKS)
+// ==========================================
+
+const syncFailedAIIncidents = async () => {
+  // Buscamos incidentes donde la IA falló previamente (tienen la etiqueta [SISTEMA])
+  const incidentsToUpdate = await Incident.find({
+    $or: [
+      { ai_justification: { $regex: /\[SISTEMA\]/i } },
+      { ai_justification: null },
+      { ai_justification: "" }
+    ]
+  }).limit(50); // Límite de 50 para evitar Timeouts HTTP
+
+  let procesados = 0;
+  let fallidos = 0;
+
+  for (const incident of incidentsToUpdate) {
+    try {
+      // Re-analizamos con la IA (enviamos un array vacío de grupos cercanos 
+      // ya que el objetivo es solo recuperar justificación y prioridad del incidente en sí)
+      const aiData = await analizarIncidenteIA(incident.title, incident.description, []);
+
+      // Si la IA respondió bien (no devolvió el fallback de nuevo)
+      if (!aiData.justificacion.includes('[SISTEMA]')) {
+        incident.priority = aiData.prioridadSugerida || 1;
+        incident.ai_justification = aiData.justificacion;
+        incident.ai_suggested_category = aiData.categoriaSugerida || 'No sugerida';
+        
+        if (aiData.isEmergency) incident.is_emergency = true;
+
+        await incident.save();
+        procesados++;
+      } else {
+        fallidos++;
+      }
+
+      // Pausa de 1.5 segundos para respetar los límites (Rate Limit) de Gemini
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+    } catch (error) {
+      console.error(`Error sincronizando incidente ${incident._id}:`, error);
+      fallidos++;
+    }
+  }
+
+  return {
+    totalEncontrados: incidentsToUpdate.length,
+    procesadosExitosamente: procesados,
+    fallidos: fallidos
+  };
+};
+
+// ==========================================
 // EXPORTACIONES
 // ==========================================
 
@@ -635,5 +713,6 @@ module.exports = {
   updateGroupCategory,
   updateGroupPriority,
   resolveDubious,
-  cancelIncident
+  cancelIncident,
+  syncFailedAIIncidents
 };
