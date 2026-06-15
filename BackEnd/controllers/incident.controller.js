@@ -9,7 +9,8 @@ const {
   updateGroupCategory,
   updateGroupPriority,
   cancelIncident,
-  syncFailedAIIncidents
+  syncFailedAIIncidents,
+  countFailedAIIncidents
 } = require('../services/incident.service');
 const { respondError, logError } = require('../utils/logger');
 
@@ -140,4 +141,13 @@ const syncAIFallbacks = async (req, res) => {
   }
 };
 
-module.exports = { create, getMyIncidents, getAll, getHistory, getGroupHistory, getGroupIncidents, updateStatus, updateCategory, updatePriority, cancel, syncAIFallbacks };
+const countAIFallbacks = async (req, res) => {
+  try {
+    const count = await countFailedAIIncidents();
+    res.status(200).json({ success: true, count });
+  } catch (error) {
+    respondError(res, error, { context: 'incidents.countAIFallbacks' });
+  }
+};
+
+module.exports = { create, getMyIncidents, getAll, getHistory, getGroupHistory, getGroupIncidents, updateStatus, updateCategory, updatePriority, cancel, syncAIFallbacks, countAIFallbacks };
