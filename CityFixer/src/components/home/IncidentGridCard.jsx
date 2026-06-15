@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, ImageOff } from "lucide-react";
+import { MapPin, ImageOff, Play } from "lucide-react";
 import { STATUS_LABELS, capitalize } from "@/lib/incidents";
 import { formatDate } from "./IncidentCard";
 import IncidentDetailSheet from "./IncidentDetailSheet";
@@ -21,6 +21,7 @@ export default function IncidentGridCard({ incident, onUpdated }) {
   const label     = STATUS_LABELS[statusKey] ?? capitalize(statusKey);
   const badgeCls  = STATUS_BADGE[statusKey] ?? "bg-gray-50 text-gray-500 border border-gray-200";
   const photo     = incident.photos?.[0];
+  const isVideo   = /\.(mp4|webm|ogg|mov|m4v|avi)(\?.*)?$/i.test(photo ?? "");
 
   return (
     <>
@@ -30,11 +31,28 @@ export default function IncidentGridCard({ incident, onUpdated }) {
       >
         {/* Miniatura superior */}
         {photo ? (
-          <img
-            src={photo}
-            alt={incident.title}
-            className="h-40 w-full object-cover"
-          />
+          isVideo ? (
+            <div className="relative h-40 w-full bg-slate-900">
+              <video
+                src={photo}
+                muted
+                playsInline
+                preload="metadata"
+                className="h-40 w-full object-cover"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/15">
+                <div className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
+                  <Play size={15} className="text-slate-700 fill-slate-700 translate-x-px" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <img
+              src={photo}
+              alt={incident.title}
+              className="h-40 w-full object-cover"
+            />
+          )
         ) : (
           <div className="h-40 w-full bg-slate-50 flex flex-col items-center justify-center gap-2 border-b border-slate-100">
             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { LogOut, Siren, ShieldOff, User, Home as HomeIcon, FileText, HelpCircle, Bell, CheckCheck, ArrowRight } from "lucide-react";
+import { LogOut, Siren, ShieldOff, User, Home as HomeIcon, FileText, HelpCircle, Bell, CheckCheck } from "lucide-react";
 import SupportInfo from "./SupportInfo";
-import { STATUS_LABELS_PUBLIC } from "@/lib/incidents";
+import { STATUS_LABELS_PUBLIC, getStatusStyle, capitalize } from "@/lib/incidents";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -33,11 +33,14 @@ function relativeTime(dateStr) {
   return `hace ${days} d`;
 }
 
-// Extrae el nombre del estado del mensaje y lo traduce
-function extractStatusLabel(message) {
+// Extrae el nombre del estado del mensaje, su label público y sus colores
+function extractStatus(message) {
   const match = /"([^"]+)"/.exec(message);
-  const raw = match?.[1];
-  return STATUS_LABELS_PUBLIC[raw] ?? raw ?? "actualizado";
+  const raw   = match?.[1];
+  const label = STATUS_LABELS_PUBLIC[raw] ?? raw ?? "actualizado";
+  // "dudoso" se muestra como "Pendiente" de cara al público, así que toma su color
+  const style = getStatusStyle(raw === "dudoso" ? "pendiente" : raw);
+  return { label, style };
 }
 
 // ── Panel de notificaciones ───────────────────────────────────────────────────
@@ -51,7 +54,14 @@ function NotificationPanel({ onNavigate }) {
     <div className="flex flex-col" style={{ maxHeight: "420px" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0">
-        <p className="text-sm font-semibold text-slate-900">Notificaciones</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-slate-900">Notificaciones</p>
+          {unreadCount > 0 && (
+            <span className="text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full leading-none">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </div>
         {unreadCount > 0 && (
           <button
             onClick={markAllRead}
@@ -66,52 +76,45 @@ function NotificationPanel({ onNavigate }) {
       {/* Lista */}
       <div className="overflow-y-auto [&::-webkit-scrollbar]:hidden flex-1">
         {notifications.length === 0 ? (
-          <div className="px-4 py-8 text-center">
-            <Bell size={20} className="text-slate-200 mx-auto mb-2" />
+          <div className="px-4 py-10 text-center">
+            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-3">
+              <Bell size={16} className="text-slate-300" />
+            </div>
             <p className="text-sm font-medium text-slate-500">Sin notificaciones</p>
             <p className="text-xs text-slate-400 mt-0.5">Te avisaremos cuando haya novedades.</p>
           </div>
         ) : (
-          notifications.map((noti) => {
-            const statusLabel = extractStatusLabel(noti.message);
+          <div className="py-1.5 px-1.5">
+          {notifications.map((noti) => {
+            const { label: statusLabel, style: statusStyle } = extractStatus(noti.message);
             return (
               <button
                 key={noti._id}
                 onClick={() => onNavigate(noti)}
-                className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-3 ${
-                  !noti.isRead ? "bg-primary/[0.04] hover:bg-primary/[0.07]" : "hover:bg-slate-50"
+                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors mb-0.5 last:mb-0 ${
+                  !noti.isRead ? "bg-primary/[0.05] hover:bg-primary/[0.08]" : "hover:bg-slate-50"
                 }`}
               >
-                {/* Indicador no leída */}
-                <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${!noti.isRead ? "bg-primary" : "bg-slate-200"}`} />
-
-                <div className="flex-1 min-w-0">
-                  {/* Título del incidente */}
-                  {noti.incidentTitle ? (
-                    <p className={`text-xs truncate mb-0.5 ${!noti.isRead ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}>
-                      {noti.incidentTitle}
-                    </p>
-                  ) : (
-                    <p className={`text-xs mb-0.5 ${!noti.isRead ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}>
-                      Tu incidente
-                    </p>
-                  )}
-
-                  {/* Estado legible */}
-                  <p className="text-[11px] text-slate-400 flex items-center gap-1">
-                    Pasó a
-                    <span className={`font-semibold ${!noti.isRead ? "text-primary" : "text-slate-500"}`}>
-                      {statusLabel}
-                    </span>
+                {/* Título + tiempo relativo */}
+                <div className="flex items-center justify-between gap-2">
+                  <p className={`text-xs truncate ${!noti.isRead ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}>
+                    {noti.incidentTitle ? capitalize(noti.incidentTitle) : "Tu incidente"}
                   </p>
-
-                  <p className="text-[10px] text-slate-300 mt-1">{relativeTime(noti.createdAt)}</p>
+                  <span className="text-[10px] text-slate-300 shrink-0">{relativeTime(noti.createdAt)}</span>
                 </div>
 
-                <ArrowRight size={12} className="text-slate-300 mt-1 shrink-0" />
+                {/* Estado legible */}
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${!noti.isRead ? "bg-primary" : "bg-slate-200"}`} />
+                  <span className="text-[11px] text-slate-400">Pasó a</span>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${statusStyle.bg} ${statusStyle.text}`}>
+                    {statusLabel}
+                  </span>
+                </div>
               </button>
             );
-          })
+          })}
+          </div>
         )}
       </div>
     </div>
