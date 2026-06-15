@@ -158,7 +158,7 @@ export default function IncidentDetailSheet({
             {/* Fotos */}
             <div className="px-5 py-4">
               <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Fotos
+                Fotos/Videos
               </p>
               <PhotoGallery photos={display.photos} compact />
             </div>

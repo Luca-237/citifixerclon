@@ -127,6 +127,7 @@ export default function AdminTopbar({
 
   const [search, setSearch]       = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [notifOpen, setNotifOpen]   = useState(false);
   const containerRef              = useRef(null);
   const mobileInputRef            = useRef(null);
 
@@ -315,7 +316,7 @@ export default function AdminTopbar({
         </button>
 
         {/* Campana con dropdown de notificaciones */}
-        <DropdownMenu>
+        <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
           <DropdownMenuTrigger asChild>
             <button className="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors focus:outline-none">
               <Bell size={20} />
@@ -368,7 +369,10 @@ export default function AdminTopbar({
             {total > 0 && (
               <div className="border-t border-slate-100">
                 <button
-                  onClick={() => onTabChange?.("incidentes")}
+                  onClick={() => {
+                    onTabChange?.("incidentes");
+                    setNotifOpen(false);
+                  }}
                   className="w-full px-4 py-2.5 text-xs font-semibold text-primary hover:bg-primary/5 transition-colors text-center"
                 >
                   Ver todos los incidentes →

@@ -8,7 +8,7 @@ import {
   X,
   Edit3,
   Check,
-  ChevronRight,
+  Settings2,
 } from "lucide-react";
 import {
   getCategorias,
@@ -207,10 +207,13 @@ export default function AdminCategoriasTab() {
       {/* ── Lista ── */}
       <Card className="border-slate-100 shadow-none overflow-hidden py-0 gap-0">
         {/* Header — solo desktop */}
-        <div className="hidden sm:grid sm:grid-cols-[44px_1fr_128px_24px] px-5 py-2.5 bg-slate-50/60 border-b border-slate-100">
+        <div className="hidden sm:grid sm:grid-cols-[44px_1fr_1fr_128px_40px] px-5 py-2.5 bg-slate-50/60 border-b border-slate-100">
           <span />
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
             Categoría
+          </span>
+          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            Descripción
           </span>
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
             Estado
@@ -230,10 +233,9 @@ export default function AdminCategoriasTab() {
             </div>
           ) : (
             categories.map((cat) => (
-              <button
+              <div
                 key={cat._id}
-                onClick={() => setSelectedId(cat._id)}
-                className="w-full grid grid-cols-[44px_1fr_128px_24px] items-center px-5 py-3.5 hover:bg-slate-50/80 transition-colors text-left"
+                className="w-full grid grid-cols-[36px_1fr_auto_36px] sm:grid-cols-[44px_1fr_1fr_128px_40px] items-center gap-2 sm:gap-0 px-4 sm:px-5 py-3 sm:py-3.5 hover:bg-slate-50/80 transition-colors"
               >
                 <div
                   className={`w-8 h-8 rounded-lg flex items-center justify-center ${cat.isActive ? "bg-blanquito/30" : "bg-gray-100"}`}
@@ -244,18 +246,30 @@ export default function AdminCategoriasTab() {
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-sm font-semibold text-slate-900 truncate">
                     {capitalize(cat.name)}
                   </p>
                 </div>
-                <div onClick={(e) => e.stopPropagation()}>
+                <div className="hidden sm:block min-w-0 sm:pr-3">
+                  <p className="text-xs text-slate-500 line-clamp-1">
+                    {cat.description || (
+                      <span className="text-slate-300 italic">—</span>
+                    )}
+                  </p>
+                </div>
+                <div className="justify-self-end sm:justify-self-auto">
                   <ToggleCell category={cat} onUpdated={fetchCategories} />
                 </div>
-                <ChevronRight
-                  size={14}
-                  className="text-slate-300 justify-self-end"
-                />
-              </button>
+                <button
+                  onClick={() => setSelectedId(cat._id)}
+                  className="group justify-self-end p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  <Settings2
+                    size={15}
+                    className="transition-transform duration-200 group-hover:rotate-45"
+                  />
+                </button>
+              </div>
             ))
           )}
         </div>
