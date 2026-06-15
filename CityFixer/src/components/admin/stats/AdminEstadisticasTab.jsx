@@ -1,13 +1,13 @@
 import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { STATUS_KEYS, STATUS_LABELS, capitalize, getStatusStyle } from "@/lib/incidents";
+import { STATUS_KEYS, capitalize } from "@/lib/incidents";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import AdminHeatmapView from "./AdminHeatmapView";
 import { requestPowerBiOtp } from "@/services/api";
-import { Zap, Loader2, CheckCircle2, Siren, ChevronRight, Users, FileText, AlertTriangle, Activity } from "lucide-react";
+import { Zap, Loader2, CheckCircle2, Siren, ChevronRight, FileText, AlertTriangle, Activity } from "lucide-react";
 
 const FINAL = new Set([STATUS_KEYS.RESOLVED, STATUS_KEYS.REJECTED, STATUS_KEYS.CANCELLED]);
 const COOLDOWN_MS  = 5 * 60 * 1000;
@@ -177,13 +177,18 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
     }));
   }, [incidents]);
 
-  // ── Top 5 problemas más reportados (grupos activos) ───────────────────────
-  const topProblems = useMemo(() =>
-    [...incidents]
-      .filter(g => !FINAL.has(g.status?.name))
-      .sort((a, b) => (b.incidents?.length ?? 1) - (a.incidents?.length ?? 1))
-      .slice(0, 5),
-  [incidents]);
+  // ── Ranking de barrios por grupos activos ────────────────────────────────
+  const barrioData = useMemo(() => {
+    const map = {};
+    for (const g of incidents) {
+      if (g.isArchived || FINAL.has(g.status?.name)) continue;
+      const name = g.neighborhood?.name ?? "Sin barrio";
+      map[name] = (map[name] ?? 0) + 1;
+    }
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [incidents]);
+
+  const maxBarrioCount = Math.max(...barrioData.map(([, v]) => v), 1);
 
   // ── Distribución por categoría ────────────────────────────────────────────
   const categoryData = useMemo(() => {
@@ -315,48 +320,37 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
 
           </div>
 
-          {/* ── Row 2: Top problemas + Pipeline ── */}
+          {/* ── Row 2: Barrios + Pipeline ── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
             <Card className="border-slate-200/80 shadow-sm">
               <CardContent className="p-5">
                 <div className="mb-4">
-                  <p className="text-sm font-semibold text-slate-900">Problemas más reportados</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Grupos activos con mayor participación ciudadana</p>
+                  <p className="text-sm font-semibold text-slate-900">Problemas por barrio</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Grupos activos sin finalizar por barrio</p>
                 </div>
                 {loading ? (
-                  <div className="flex flex-col gap-2">
-                    {[0,1,2,3,4].map(i => <div key={i} className="h-10 bg-slate-50 rounded-lg animate-pulse" />)}
+                  <div className="flex flex-col gap-3">
+                    {[0,1,2,3,4].map(i => <div key={i} className="h-6 bg-slate-50 rounded-lg animate-pulse" />)}
                   </div>
-                ) : topProblems.length === 0 ? (
+                ) : barrioData.length === 0 ? (
                   <p className="text-xs text-slate-400 py-6 text-center">No hay grupos activos</p>
                 ) : (
-                  <ol className="flex flex-col gap-1.5">
-                    {topProblems.map((g, i) => {
-                      const title      = g.representativeId?.title ?? "Sin título";
-                      const count      = g.incidents?.length ?? 1;
-                      const style      = getStatusStyle(g.status?.name);
-                      const statusLabel = STATUS_LABELS[g.status?.name] ?? capitalize(g.status?.name ?? "");
-                      return (
-                        <li key={g._id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
-                          <span className="text-xs font-bold text-slate-400 w-4 shrink-0">#{i + 1}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-slate-800 truncate">{title}</p>
-                            <p className="text-[11px] text-slate-400">{capitalize(g.category?.name ?? "—")}</p>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${style.bg} ${style.text}`}>
-                              {statusLabel}
-                            </span>
-                            <span className="flex items-center gap-0.5 text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 px-1.5 py-0.5 rounded-full">
-                              <Users size={9} />
-                              {count}
-                            </span>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ol>
+                  <div className="flex flex-col gap-3.5 mt-1">
+                    {barrioData.map(([name, count], i) => (
+                      <div key={name} className="flex items-center gap-3">
+                        <span className="text-[11px] font-bold text-slate-400 w-4 shrink-0">#{i + 1}</span>
+                        <span className="text-[11px] font-semibold text-slate-700 w-28 shrink-0 truncate">{name}</span>
+                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-primary transition-all duration-500"
+                            style={{ width: `${(count / maxBarrioCount) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-slate-700 w-5 text-right shrink-0">{count}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
