@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import AdminHeatmapView from "./AdminHeatmapView";
 import { requestPowerBiOtp } from "@/services/api";
-import { Zap, Loader2, CheckCircle2, Siren, ChevronRight, FileText, AlertTriangle, Activity } from "lucide-react";
+import { Zap, Loader2, CheckCircle2, Clock, FileText, AlertTriangle, Activity } from "lucide-react";
 
 const FINAL = new Set([STATUS_KEYS.RESOLVED, STATUS_KEYS.REJECTED, STATUS_KEYS.CANCELLED]);
 const COOLDOWN_MS  = 5 * 60 * 1000;
@@ -120,9 +120,9 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
     [incidents],
   );
 
-  // ── KPI: emergencias activas ──────────────────────────────────────────────
-  const emergenciasActivas = useMemo(
-    () => incidents.filter(g => g.is_emergency && !FINAL.has(g.status?.name)).length,
+  // ── KPI: pendientes sin atender (grupos activos que nadie tocó todavía) ───
+  const pendientesSinAtender = useMemo(
+    () => incidents.filter(g => !g.isArchived && g.status?.name === STATUS_KEYS.PENDING).length,
     [incidents],
   );
 
@@ -167,15 +167,17 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
   const pipeline = useMemo(() => {
     const active = incidents.filter(g => !g.isArchived);
     return [
-      { label: "Pendiente",  key: STATUS_KEYS.PENDING,    color: "text-amber-600",   bg: "bg-amber-50",   border: "border-amber-200"   },
-      { label: "Aceptado",   key: STATUS_KEYS.ACCEPTED,   color: "text-teal-600",    bg: "bg-teal-50",    border: "border-teal-200"    },
-      { label: "En proceso", key: STATUS_KEYS.IN_PROCESS, color: "text-indigo-600",  bg: "bg-indigo-50",  border: "border-indigo-200"  },
-      { label: "Resuelto",   key: STATUS_KEYS.RESOLVED,   color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200", all: true },
+      { label: "Pendiente",  key: STATUS_KEYS.PENDING,    color: "text-amber-600",   bar: "bg-amber-400"   },
+      { label: "Aceptado",   key: STATUS_KEYS.ACCEPTED,   color: "text-teal-600",    bar: "bg-teal-400"    },
+      { label: "En proceso", key: STATUS_KEYS.IN_PROCESS, color: "text-indigo-600",  bar: "bg-indigo-400"  },
+      { label: "Resuelto",   key: STATUS_KEYS.RESOLVED,   color: "text-emerald-600", bar: "bg-emerald-400", all: true },
     ].map(s => ({
       ...s,
       count: (s.all ? incidents : active).filter(g => g.status?.name === s.key).length,
     }));
   }, [incidents]);
+
+  const pipelineTotal = useMemo(() => pipeline.reduce((sum, s) => sum + s.count, 0), [pipeline]);
 
   // ── Ranking de barrios por grupos activos ────────────────────────────────
   const barrioData = useMemo(() => {
@@ -218,16 +220,6 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
         {/* ══ Tab 1: Métricas Generales ══════════════════════════════════════ */}
         <TabsContent value="metricas">
 
-          {/* ── Banner emergencias activas ── */}
-          {!loading && emergenciasActivas > 0 && (
-            <div className="flex items-center gap-3 mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
-              <Siren size={16} className="text-red-500 shrink-0" />
-              <p className="text-sm font-semibold text-red-700">
-                {emergenciasActivas} emergencia{emergenciasActivas !== 1 ? "s" : ""} activa{emergenciasActivas !== 1 ? "s" : ""} — requieren atención inmediata
-              </p>
-            </div>
-          )}
-
           {/* ── KPIs ── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 items-start">
             <KpiCard
@@ -247,11 +239,11 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
               loading={loading}
             />
             <KpiCard
-              label="Emergencias activas"
-              value={emergenciasActivas}
-              accent={emergenciasActivas > 0 ? "text-red-600" : "text-emerald-600"}
-              icon={Siren}
-              sub={emergenciasActivas > 0 ? "requieren atención" : "sin emergencias activas"}
+              label="Pendientes sin atender"
+              value={pendientesSinAtender}
+              accent={pendientesSinAtender > 0 ? "text-amber-600" : "text-slate-900"}
+              icon={Clock}
+              sub="sin primera respuesta aún"
               loading={loading}
             />
             <KpiCard
@@ -265,10 +257,10 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
           </div>
 
           {/* ── Row 1: Tendencia + Prioridad ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 ">
 
-            <Card className="border-slate-200/80 shadow-sm">
-              <CardContent className="p-5">
+            <Card className="border-slate-200/80 shadow-sm py-0 ">
+              <CardContent className="p-5 ">
                 <div className="mb-4">
                   <p className="text-sm font-semibold text-slate-900">Actividad ciudadana reciente</p>
                   <p className="text-xs text-slate-400 mt-0.5">Reportes individuales ingresados por día</p>
@@ -291,7 +283,7 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200/80 shadow-sm">
+            <Card className="border-slate-200/80 shadow-sm py-0" >
               <CardContent className="p-5">
                 <div className="mb-4">
                   <p className="text-sm font-semibold text-slate-900">Distribución por prioridad</p>
@@ -323,7 +315,7 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
           {/* ── Row 2: Barrios + Pipeline ── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
-            <Card className="border-slate-200/80 shadow-sm">
+            <Card className="border-slate-200/80 shadow-sm py-0">
               <CardContent className="p-5">
                 <div className="mb-4">
                   <p className="text-sm font-semibold text-slate-900">Problemas por barrio</p>
@@ -355,7 +347,7 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200/80 shadow-sm">
+            <Card className="border-slate-200/80 shadow-sm py-0">
               <CardContent className="p-5 h-full flex flex-col">
                 <div className="mb-4">
                   <p className="text-sm font-semibold text-slate-900">Pipeline de estados</p>
@@ -365,18 +357,26 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
                   <div className="flex-1 bg-slate-50 rounded-xl animate-pulse" />
                 ) : (
                   <>
-                    <div className="flex items-stretch gap-1.5 flex-1">
-                      {pipeline.map((s, i) => (
-                        <div key={s.key} className="flex items-center gap-1.5 flex-1 min-w-0">
-                          <div className={`flex-1 h-full flex flex-col items-center justify-center gap-2 px-1.5 rounded-xl border ${s.bg} ${s.border}`}>
-                            <span className={`text-3xl font-bold leading-none ${s.color}`}>{s.count}</span>
-                            <span className={`text-[11px] font-semibold text-center leading-tight ${s.color}`}>{s.label}</span>
+                    <div className="flex-1 flex flex-col justify-center gap-5">
+                      <div className="h-9 w-full rounded-full overflow-hidden flex bg-slate-100">
+                        {pipelineTotal > 0 && pipeline.map(s => s.count > 0 && (
+                          <div
+                            key={s.key}
+                            className={`h-full ${s.bar}`}
+                            style={{ width: `${(s.count / pipelineTotal) * 100}%` }}
+                            title={`${s.label}: ${s.count}`}
+                          />
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {pipeline.map(s => (
+                          <div key={s.key} className="flex items-center gap-2 min-w-0">
+                            <span className={`size-2.5 rounded-full shrink-0 ${s.bar}`} />
+                            <span className="text-[11px] text-slate-500 truncate">{s.label}</span>
+                            <span className={`text-[11px] font-bold ml-auto ${s.color}`}>{s.count}</span>
                           </div>
-                          {i < pipeline.length - 1 && (
-                            <ChevronRight size={13} className="text-slate-300 shrink-0" />
-                          )}
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
                       <span>Total: <span className="font-semibold text-slate-700">{incidents.length}</span></span>
@@ -392,7 +392,7 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
           </div>
 
           {/* ── Row 3: Distribución por categoría ── */}
-          <Card className="border-slate-200/80 shadow-sm mb-6">
+          <Card className="border-slate-200/80 shadow-sm mb-6 py-0">
             <CardContent className="p-5">
               <div className="mb-4">
                 <p className="text-sm font-semibold text-slate-900">Distribución por categoría</p>
@@ -438,7 +438,7 @@ export default function AdminEstadisticasTab({ incidents, loading, dbRole }) {
 
           {/* ── Power BI — solo superAdmin ── */}
           {dbRole === "superAdmin" && (
-            <Card className="border-slate-200/80 shadow-sm">
+            <Card className="border-slate-200/80 shadow-sm py-0">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>

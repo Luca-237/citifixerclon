@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, Loader2, Settings2, Shield, ShieldOff, X, User, Plus, Edit3, Check } from "lucide-react";
+import { Search, Loader2, Settings2, Shield, ShieldOff, X, User, Plus, Edit3, Check, RefreshCw } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { getNeighborhoods } from "@/services/api";
 import { Combobox } from "@/components/ui/combobox";
@@ -64,7 +64,7 @@ const INPUT_CLS = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py
 
 export default function AdminUsuariosTab() {
   const {
-    users, roles, loading, loadError,
+    users, roles, loading, loadError, refresh,
     actionLoading, actionError, handleRoleChange, handleBanToggle,
     handleCreate, createLoading, createError, handleProfileEdit,
   } = useUsers();
@@ -196,13 +196,24 @@ export default function AdminUsuariosTab() {
             {loading ? "Cargando..." : `${users.length} usuario${users.length !== 1 ? "s" : ""} registrados`}
           </p>
         </div>
-        <Button
-          onClick={openCreate}
-          className="shrink-0 rounded-xl bg-primary hover:bg-celestito text-white font-semibold gap-1.5"
-        >
-          <Plus size={15} />
-          Nuevo Usuario
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={refresh}
+            disabled={loading}
+            title="Actualizar usuarios"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+            <span className="hidden sm:inline">Actualizar</span>
+          </button>
+          <Button
+            onClick={openCreate}
+            className="shrink-0 rounded-xl bg-primary hover:bg-celestito text-white font-semibold gap-1.5"
+          >
+            <Plus size={15} />
+            Nuevo Usuario
+          </Button>
+        </div>
       </div>
 
       {/* ── Filtros ── */}

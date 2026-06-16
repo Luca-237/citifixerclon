@@ -9,6 +9,7 @@ import {
   Edit3,
   Check,
   Settings2,
+  RefreshCw,
 } from "lucide-react";
 import {
   getCategorias,
@@ -194,14 +195,25 @@ export default function AdminCategoriasTab() {
               : `${categories.length} categorías en total`}
           </p>
         </div>
-        <Button
-          onClick={() => setCreateOpen(true)}
-          className="shrink-0 rounded-xl bg-primary hover:bg-celestito text-white font-semibold gap-1.5"
-        >
-          <Plus size={15} />
-          <span className="sm:hidden">Nueva</span>
-          <span className="hidden sm:inline">Nueva Categoría</span>
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={fetchCategories}
+            disabled={loading}
+            title="Actualizar categorías"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+            <span className="hidden sm:inline">Actualizar</span>
+          </button>
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="shrink-0 rounded-xl bg-primary hover:bg-celestito text-white font-semibold gap-1.5"
+          >
+            <Plus size={15} />
+            <span className="sm:hidden">Nueva</span>
+            <span className="hidden sm:inline">Nueva Categoría</span>
+          </Button>
+        </div>
       </div>
 
       {/* ── Lista ── */}

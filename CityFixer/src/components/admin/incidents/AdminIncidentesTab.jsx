@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Search, X, Archive, RefreshCw, Loader2 } from "lucide-react";
+import { Plus, Search, X, Archive, RefreshCw, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import AdminIncidentList from "./AdminIncidentList";
 import { useStatuses } from "@/hooks/useStatuses";
@@ -154,7 +154,7 @@ export default function AdminIncidentesTab({
     <div className="flex flex-col gap-4">
 
       {/* ── Cabecera ── */}
-      <div className="flex justify-between items-center gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <h2 className="text-xl sm:text-2xl font-bold text-[#292D60]">Gestión de Incidentes</h2>
@@ -170,37 +170,51 @@ export default function AdminIncidentesTab({
             </p>
           )}
         </div>
-        {!isReadOnly && (
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="relative">
+        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+          <button
+            onClick={onUpdated}
+            disabled={loading}
+            aria-label="Actualizar lista de incidentes"
+            title="Actualizar lista de incidentes"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-2 sm:py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+            <span className="hidden sm:inline">Actualizar</span>
+          </button>
+          {!isReadOnly && (
+            <>
+              <div className="relative">
+                <button
+                  onClick={handleSyncAI}
+                  disabled={syncing}
+                  aria-label="Sincronizar con IA"
+                  title="Reintentar análisis de IA en incidentes pendientes"
+                  className="flex items-center justify-center gap-1 px-2.5 py-2 sm:py-1.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary text-sm font-semibold transition-colors disabled:opacity-50"
+                >
+                  {syncing
+                    ? <Loader2 size={15} className="animate-spin" />
+                    : <Sparkles size={15} />
+                  }
+                  <span className="sm:hidden text-xs font-bold">IA</span>
+                  <span className="hidden sm:inline">Sincronizar IA</span>
+                </button>
+                {pendingAI > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-orange-500 ring-2 ring-white flex items-center justify-center text-white text-[10px] font-bold leading-none">
+                    {pendingAI > 99 ? "99+" : pendingAI}
+                  </span>
+                )}
+              </div>
               <button
-                onClick={handleSyncAI}
-                disabled={syncing}
-                title="Reintentar análisis de IA en incidentes pendientes"
-                className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-xl border border-primary/40 bg-white hover:bg-primary/5 text-primary text-sm font-semibold transition-colors disabled:opacity-50"
+                onClick={onNuevoReporte}
+                className="flex items-center justify-center px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-xl bg-primary hover:bg-celestito text-white text-sm font-semibold gap-1.5 transition-colors"
               >
-                {syncing
-                  ? <Loader2 size={15} className="animate-spin" />
-                  : <RefreshCw size={15} />
-                }
-                <span className="hidden sm:inline">Sincronizar IA</span>
+                <Plus size={15} />
+                <span className="hidden sm:inline">Reportar Incidente</span>
+                <span className="sm:hidden">Nuevo</span>
               </button>
-              {pendingAI > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-orange-500 ring-2 ring-white flex items-center justify-center text-white text-[10px] font-bold leading-none">
-                  {pendingAI > 99 ? "99+" : pendingAI}
-                </span>
-              )}
-            </div>
-            <button
-              onClick={onNuevoReporte}
-              className="flex items-center justify-center px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-xl bg-primary hover:bg-celestito text-white text-sm font-semibold gap-1.5 transition-colors"
-            >
-              <Plus size={15} />
-              <span className="hidden sm:inline">Reportar Incidente</span>
-              <span className="sm:hidden">Nuevo</span>
-            </button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Banner info archivados ── */}
@@ -310,7 +324,7 @@ export default function AdminIncidentesTab({
             </Select>
 
             <Select value={filters.priority} onValueChange={set("priority")}>
-              <SelectTrigger className={SELECT_CLASS}>
+              <SelectTrigger className={`${SELECT_CLASS} ${!hasActiveFilters ? "col-span-2" : ""}`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -321,7 +335,7 @@ export default function AdminIncidentesTab({
               </SelectContent>
             </Select>
 
-            {hasActiveFilters ? (
+            {hasActiveFilters && (
               <button
                 onClick={clearFilters}
                 className="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium transition-colors
@@ -331,8 +345,6 @@ export default function AdminIncidentesTab({
                 <X size={12} />
                 Limpiar
               </button>
-            ) : (
-              <div className="sm:hidden" />
             )}
           </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getUsers, getRoles, createUser, updateUserRole, updateUserBan, updateUserProfile } from "@/services/api";
 
 export function useUsers() {
@@ -11,8 +11,10 @@ export function useUsers() {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError]     = useState(null);
 
-  useEffect(() => {
-    Promise.all([getUsers(), getRoles()])
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setLoadError(null);
+    return Promise.all([getUsers(), getRoles()])
       .then(([usersRes, rolesRes]) => {
         setUsers(usersRes.data.users);
         setRoles(rolesRes.data.roles);
@@ -20,6 +22,8 @@ export function useUsers() {
       .catch(() => setLoadError("No se pudieron cargar los usuarios. Intentá de nuevo."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
 
   const setCardError = (userId, msg) => {
     setActionError((prev) => ({ ...prev, [userId]: msg }));
@@ -82,7 +86,7 @@ export function useUsers() {
   };
 
   return {
-    users, roles, loading, loadError,
+    users, roles, loading, loadError, refresh,
     actionLoading, actionError, handleRoleChange, handleBanToggle,
     handleCreate, createLoading, createError,
     handleProfileEdit,
