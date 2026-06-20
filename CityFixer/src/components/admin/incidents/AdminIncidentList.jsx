@@ -7,17 +7,6 @@ import IncidentAdminActions from "./IncidentAdminActions";
 import IncidentSkeleton from "@/components/home/IncidentSkeleton";
 import { EmptyState } from "@/components/home/IncidentCard";
 
-// Mayor número = mayor urgencia (10 va primero, 1 va último)
-function getPriority(incident) {
-  const raw = incident.priority ?? incident.prioridad ?? incident.Priority;
-  if (raw === undefined || raw === null) return -1;
-  return typeof raw === "number" ? raw : Number(raw) || -1;
-}
-
-function sortByPriority(list) {
-  return [...list].sort((a, b) => getPriority(b) - getPriority(a));
-}
-
 export default function AdminIncidentList({ incidents, loading, onUpdated, focusedIncidentId, onClearFocus, isReadOnly = false }) {
   const [focusedIncident, setFocusedIncident] = useState(null);
   const [focusedOpen,     setFocusedOpen]     = useState(false);
@@ -49,8 +38,6 @@ export default function AdminIncidentList({ incidents, loading, onUpdated, focus
     return <EmptyState message="No hay incidentes para mostrar." />;
   }
 
-  const sorted = sortByPriority(incidents);
-
   return (
     <>
       {/* ── DESKTOP: Data Table ── */}
@@ -77,7 +64,7 @@ export default function AdminIncidentList({ incidents, loading, onUpdated, focus
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sorted.map((inc) => (
+            {incidents.map((inc) => (
               <AdminIncidentRow key={inc._id} incident={inc} onUpdated={onUpdated} isReadOnly={isReadOnly} />
             ))}
           </TableBody>
@@ -86,7 +73,7 @@ export default function AdminIncidentList({ incidents, loading, onUpdated, focus
 
       {/* ── MOBILE: Cards simplificadas ── */}
       <div className="md:hidden flex flex-col gap-2.5">
-        {sorted.map((inc) => (
+        {incidents.map((inc) => (
           <AdminIncidentCard key={inc._id} incident={inc} onUpdated={onUpdated} isReadOnly={isReadOnly} />
         ))}
       </div>

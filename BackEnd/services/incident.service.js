@@ -13,6 +13,12 @@ const CONFIANZA_UMBRAL = 0.85;
 // VALIDACIONES
 // ==========================================
 
+/**
+ * Valida los datos crudos de un incidente antes de crearlo.
+ *
+ * @param {Object} data Datos del formulario (title, description, category, photos, location).
+ * @returns {{ isValid: boolean, errors: string[] }} Resultado con la lista de errores.
+ */
 const validateIncidentData = (data) => {
   const errors = [];
 
@@ -53,6 +59,13 @@ const validateIncidentData = (data) => {
 // HELPER: puntaje para elegir representante
 // ==========================================
 
+/**
+ * Puntaje para elegir el representante de un grupo: pondera más la descripción
+ * que el título. Usado como fallback (cancelación/merge), no en la creación.
+ *
+ * @param {Object} incident Incidente con `title` y `description`.
+ * @returns {number} Puntaje (mayor = mejor representante).
+ */
 const calcularScoreRepresentante = (incident) => {
   const largoTitulo = incident.title?.trim().length || 0;
   const largoDescripcion = incident.description?.trim().length || 0;
@@ -63,6 +76,19 @@ const calcularScoreRepresentante = (incident) => {
 // CREACIÓN
 // ==========================================
 
+/**
+ * Crea un incidente y lo asigna a un grupo. Según el análisis de IA decide si se
+ * suma a un grupo cercano existente (estado `pendiente`, confianza >= 0.85, sin
+ * dudosos sin revisar) o si abre su propio grupo (ver ADR-001 y ADR-002).
+ * Resuelve además el barrio por intersección geográfica.
+ *
+ * @param {Object} incidentData       Datos validables del reporte.
+ * @param {string} userId             ObjectId del usuario que reporta.
+ * @param {Object} aiData             Resultado de `analizarIncidenteIA`.
+ * @param {string} [userRole='user']  Rol del usuario.
+ * @returns {Promise<Object>} El incidente creado.
+ * @throws {Error} 400 si los datos no son válidos; 500 si faltan estados base.
+ */
 const createIncident = async (incidentData, userId, aiData, userRole = 'user') => {
   const validation = validateIncidentData(incidentData);
   if (!validation.isValid) {
@@ -201,6 +227,14 @@ const createIncident = async (incidentData, userId, aiData, userRole = 'user') =
 // LECTURA - USUARIO
 // ==========================================
 
+/**
+ * Lista los incidentes de un usuario (más recientes primero). El status y la
+ * categoría visibles se toman del grupo (salvo cancelados); los dudosos se
+ * muestran como "pendiente" al usuario.
+ *
+ * @param {string} userId ObjectId del usuario.
+ * @returns {Promise<Array<Object>>} Incidentes del usuario (objetos planos).
+ */
 const getIncidentsByUser = async (userId) => {
   const incidents = await Incident.find({ user: userId })
     .populate('category')
@@ -232,6 +266,12 @@ const getIncidentsByUser = async (userId) => {
 // LECTURA - ADMIN
 // ==========================================
 
+/**
+ * Lista todos los grupos de incidentes con el representante, status, categoría,
+ * barrio e historial poblados. Vista de administración.
+ *
+ * @returns {Promise<Array<Object>>} Grupos de incidentes poblados.
+ */
 const getAllGroups = async () => {
   return await IncidentGroup.find()
     .populate({
@@ -254,6 +294,14 @@ const getAllGroups = async () => {
 // HISTORIAL
 // ==========================================
 
+/**
+ * Devuelve el historial de estados de un incidente. Solo lo ve su dueño o un admin.
+ *
+ * @param {string} incidentId ObjectId del incidente.
+ * @param {Object} requester  Quien solicita: `{ id, role }`.
+ * @returns {Promise<Object>} Incidente con `statusHistory` poblado.
+ * @throws {Error} 404 si no existe, 403 si no tiene permiso.
+ */
 const getIncidentHistory = async (incidentId, requester) => {
   const incident = await Incident.findById(incidentId)
     .select('title statusHistory user')
@@ -276,6 +324,13 @@ const getIncidentHistory = async (incidentId, requester) => {
   return incident;
 };
 
+/**
+ * Devuelve el historial de estados de un grupo (vista de administración).
+ *
+ * @param {string} groupId ObjectId del grupo.
+ * @returns {Promise<Object>} Grupo con `statusHistory` poblado.
+ * @throws {Error} 404 si el grupo no existe.
+ */
 const getGroupHistory = async (groupId) => {
   const group = await IncidentGroup.findById(groupId)
     .select('statusHistory')
@@ -303,6 +358,17 @@ const VALID_TRANSITIONS = {
   en_proceso: ['resuelto', 'rechazado'],
 };
 
+/**
+ * Cambia el estado de un grupo (admin), validando la transición permitida y
+ * propagándolo a los incidentes no cancelados. Notifica a los usuarios afectados.
+ * Si hay un dudoso, solo permite pasar a "aceptado" o "rechazado".
+ *
+ * @param {string} groupId     ObjectId del grupo.
+ * @param {string} newStatusId ObjectId del nuevo estado.
+ * @param {string} userId      ObjectId del admin que realiza el cambio.
+ * @returns {Promise<Object>} Grupo actualizado.
+ * @throws {Error} 400 id/estado inválido; 404 grupo no existe; 409 transición no permitida o grupo finalizado.
+ */
 const updateGroupStatus = async (groupId, newStatusId, userId) => {
   if (!mongoose.Types.ObjectId.isValid(newStatusId)) {
     const error = new Error('El estado enviado no es válido.');
@@ -382,6 +448,14 @@ const updateGroupStatus = async (groupId, newStatusId, userId) => {
   return group;
 };
 
+/**
+ * Cambia la categoría de un grupo (admin). No se permite si el grupo está finalizado.
+ *
+ * @param {string} groupId       ObjectId del grupo.
+ * @param {string} newCategoryId ObjectId de la nueva categoría.
+ * @returns {Promise<Object>} Grupo actualizado.
+ * @throws {Error} 400 categoría inválida; 404 grupo no existe; 409 grupo finalizado.
+ */
 const updateGroupCategory = async (groupId, newCategoryId) => {
   if (!mongoose.Types.ObjectId.isValid(newCategoryId)) {
     const error = new Error('La categoría enviada no es válida.');
@@ -407,6 +481,14 @@ const updateGroupCategory = async (groupId, newCategoryId) => {
   return group;
 };
 
+/**
+ * Sobrescribe manualmente la prioridad de un grupo (admin).
+ *
+ * @param {string} groupId  ObjectId del grupo.
+ * @param {number} priority Prioridad entera entre 1 y 10.
+ * @returns {Promise<Object>} Grupo actualizado.
+ * @throws {Error} 400 prioridad fuera de rango; 404 grupo no existe; 409 grupo finalizado.
+ */
 const updateGroupPriority = async (groupId, priority) => {
   const value = Number(priority);
   if (!Number.isInteger(value) || value < 1 || value > 10) {
@@ -437,6 +519,17 @@ const updateGroupPriority = async (groupId, priority) => {
 // RESOLUCIÓN DE DUDOSOS - ADMIN (sin ruta activa, lógica lista para merge futuro)
 // ==========================================
 
+/**
+ * Resuelve un grupo con incidente dudoso (admin). `reject` rechaza el grupo;
+ * `accept` mueve el incidente al grupo candidato (merge) si existe, o lo valida
+ * en su grupo propio. Lógica lista para el merge futuro (sin ruta activa aún).
+ *
+ * @param {string} groupId ObjectId del grupo dudoso.
+ * @param {('accept'|'reject')} action Acción a aplicar.
+ * @param {string} adminId ObjectId del admin.
+ * @returns {Promise<Object>} El grupo resultante (candidato si hubo merge).
+ * @throws {Error} 400 acción inválida o sin dudosos; 404 grupo no existe; 409 grupo finalizado.
+ */
 const resolveDubious = async (groupId, action, adminId) => {
   if (!['accept', 'reject'].includes(action)) {
     const error = new Error('La acción debe ser "accept" o "reject".');
@@ -548,6 +641,14 @@ const resolveDubious = async (groupId, action, adminId) => {
 // INCIDENTES DE UN GRUPO - ADMIN
 // ==========================================
 
+/**
+ * Devuelve los incidentes individuales de un grupo, con usuario, status y
+ * categoría poblados (vista de administración).
+ *
+ * @param {string} groupId ObjectId del grupo.
+ * @returns {Promise<Array<Object>>} Incidentes del grupo.
+ * @throws {Error} 404 si el grupo no existe.
+ */
 const getGroupIncidents = async (groupId) => {
   const group = await IncidentGroup.findById(groupId).select('incidents');
   if (!group) {
@@ -569,6 +670,16 @@ const getGroupIncidents = async (groupId) => {
 
 const CANCELLABLE_STATUSES = ['pendiente', 'aceptado'];
 
+/**
+ * Cancela un incidente propio del usuario. Baja la prioridad del grupo (mín. 1);
+ * si no quedan incidentes activos cancela el grupo, y si el cancelado era el
+ * representante reasigna uno nuevo por score.
+ *
+ * @param {string} incidentId ObjectId del incidente.
+ * @param {string} userId     ObjectId del dueño del incidente.
+ * @returns {Promise<Object>} Incidente actualizado.
+ * @throws {Error} 404 no existe; 403 no es del usuario; 409 grupo finalizado o estado no cancelable.
+ */
 const cancelIncident = async (incidentId, userId) => {
   const incident = await Incident.findById(incidentId).populate('status');
 
@@ -651,6 +762,13 @@ const cancelIncident = async (incidentId, userId) => {
 let syncQueue = [];
 let isSyncRunning = false;
 
+/**
+ * Procesa en segundo plano la cola de incidentes con IA fallida, respetando el
+ * límite de Gemini (lotes de 5, pausa de 60 s entre lotes). Interno: lo dispara
+ * `queueFailedAIIncidents`.
+ *
+ * @returns {Promise<void>}
+ */
 const processSyncQueue = async () => {
   isSyncRunning = true;
   console.log(`\n⚙️ [SYNC INIT] Arrancando procesador en segundo plano. Total en cola inicial: ${syncQueue.length}`);
@@ -711,6 +829,12 @@ const processSyncQueue = async () => {
   console.log(`\n🎉 [SYNC DONE] La cola de sincronización ha finalizado por completo.\n`);
 };
 
+/**
+ * Encola los incidentes cuyo análisis de IA falló (justificación con `[SISTEMA]`,
+ * null o vacía), evitando duplicados, y arranca el procesador si no corre.
+ *
+ * @returns {Promise<{ message: string, totalEnCola: number, nuevosAgregados: number }>}
+ */
 const queueFailedAIIncidents = async () => {
   // Buscamos los incidentes que requieran revisión
   const incidentsToUpdate = await Incident.find({
@@ -740,6 +864,12 @@ const queueFailedAIIncidents = async () => {
   };
 };
 
+/**
+ * Cuenta los incidentes cuyo análisis de IA falló (justificación `[SISTEMA]`,
+ * null o vacía). Usado para mostrar el contador al admin.
+ *
+ * @returns {Promise<number>} Cantidad de incidentes pendientes de reprocesar.
+ */
 const countFailedAIIncidents = async () => {
   return await Incident.countDocuments({
     $or: [

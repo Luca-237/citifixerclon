@@ -10,6 +10,12 @@ const TELEFONO_REGEX = /^\d{10}$/;
 const CODIGO_POSTAL_REGEX = /^\d{4}([A-Z]{3})?$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * Indica si un usuario tiene el perfil completo (todos los campos obligatorios).
+ *
+ * @param {Object} u Usuario o conjunto de campos a evaluar.
+ * @returns {boolean} true si dni, teléfono, dirección, ciudad, provincia y CP están presentes.
+ */
 const isProfileComplete = (u) =>
   !!(u.dni && u.telefono && u.direccion && u.ciudad && u.provincia && u.codigoPostal);
 
@@ -17,6 +23,12 @@ const isProfileComplete = (u) =>
 // 1. CONSULTAS
 // ==========================================
 
+/**
+ * Lista los usuarios (más recientes primero), excluyendo el usuario de sistema
+ * de la IA, con rol y barrio poblados.
+ *
+ * @returns {Promise<Array<Object>>} Usuarios.
+ */
 const getUsers = async () => {
   const aiRole = await Role.findOne({ name: 'ai' });
   const excludeIds = aiRole ? [aiRole._id] : [];
@@ -26,6 +38,13 @@ const getUsers = async () => {
     .sort({ createdAt: -1 });
 };
 
+/**
+ * Obtiene un usuario por ID con su rol poblado.
+ *
+ * @param {string} userId ObjectId del usuario.
+ * @returns {Promise<Object>} Usuario encontrado.
+ * @throws {Error} 400 si el id no es válido, 404 si no existe.
+ */
 const getUserById = async (userId) => {
   if (!mongoose.Types.ObjectId.isValid(userId)) {
     const error = new Error('El usuario enviado no es válido.');
@@ -44,6 +63,11 @@ const getUserById = async (userId) => {
   return user;
 };
 
+/**
+ * Lista todos los roles (más recientes primero).
+ *
+ * @returns {Promise<Array<Object>>} Roles.
+ */
 const getRoles = async () => {
   return await Role.find().sort({ createdAt: -1 });
 };
@@ -52,6 +76,14 @@ const getRoles = async () => {
 // 2. VERIFICACIÓN POR MAIL
 // ==========================================
 
+/**
+ * Genera un código OTP de 6 dígitos (válido 10 min) y lo envía por email para
+ * completar el perfil. Solo aplica si el perfil aún no está completo.
+ *
+ * @param {string} userId ObjectId del usuario.
+ * @returns {Promise<void>}
+ * @throws {Error} 404 si el usuario no existe, 400 si el perfil ya está completo.
+ */
 const sendVerification = async (userId) => {
   const user = await User.findById(userId);
   if (!user) {
@@ -80,12 +112,29 @@ const sendVerification = async (userId) => {
 // 3. PERFIL PROPIO
 // ==========================================
 
+/**
+ * Devuelve el perfil del usuario autenticado, con rol y barrio poblados.
+ *
+ * @param {string} userId ObjectId del usuario.
+ * @returns {Promise<Object|null>} Perfil del usuario, o null si no existe.
+ */
 const getMyProfile = async (userId) => {
   return await User.findById(userId)
     .populate('role', 'name')
     .populate('barrio', 'name');
 };
 
+/**
+ * Actualiza el perfil propio. En el onboarding (primera vez) exige el OTP de
+ * verificación; el DNI es obligatorio si no lo tiene e inmutable si ya lo tiene.
+ * Recalcula `profileComplete`.
+ *
+ * @param {string} userId ObjectId del usuario.
+ * @param {Object} data   Campos: telefono, direccion, ciudad, barrioId, provincia,
+ *                        codigoPostal, dni y verificationToken (OTP en onboarding).
+ * @returns {Promise<Object>} Usuario actualizado (rol y barrio poblados).
+ * @throws {Error} 404 usuario no existe; 400 OTP/datos inválidos; 409 DNI duplicado.
+ */
 const updateProfile = async (userId, data) => {
   const { telefono, direccion, ciudad, barrioId, provincia, codigoPostal, dni, verificationToken } = data;
   const errors = [];
@@ -148,6 +197,15 @@ const updateProfile = async (userId, data) => {
     throw error;
   }
 
+  if (!user.dni && dni) {
+    const dniExists = await User.findOne({ dni: String(dni), _id: { $ne: user._id } });
+    if (dniExists) {
+      const error = new Error('Ya existe un usuario con ese DNI.');
+      error.status = 409;
+      throw error;
+    }
+  }
+
   if (barrioId) {
     const barrio = await Neighborhood.findById(barrioId);
     if (!barrio) {
@@ -186,6 +244,14 @@ const updateProfile = async (userId, data) => {
 // CREACIÓN POR ADMIN
 // ==========================================
 
+/**
+ * Crea un usuario desde el panel de administración. No permite asignar los roles
+ * `superAdmin` ni `ai`. Valida formatos y unicidad de email/DNI.
+ *
+ * @param {Object} data Datos: email, roleId, firstName, lastName y campos de perfil opcionales.
+ * @returns {Promise<Object>} Usuario creado (rol y barrio poblados).
+ * @throws {Error} 400 datos inválidos; 403 rol no permitido; 404 rol/barrio no existe; 409 email/DNI duplicado.
+ */
 const createUserByAdmin = async (data) => {
   const { email, roleId, firstName, lastName, dni, telefono, direccion, ciudad, barrioId, provincia, codigoPostal } = data;
   const errors = [];
@@ -223,6 +289,15 @@ const createUserByAdmin = async (data) => {
     throw error;
   }
 
+  if (dni) {
+    const dniExists = await User.findOne({ dni: String(dni) });
+    if (dniExists) {
+      const error = new Error('Ya existe un usuario con ese DNI.');
+      error.status = 409;
+      throw error;
+    }
+  }
+
   if (barrioId) {
     const barrio = await Neighborhood.findById(barrioId);
     if (!barrio) {
@@ -258,6 +333,15 @@ const createUserByAdmin = async (data) => {
 // EDICIÓN DE PERFIL POR ADMIN (parcial)
 // ==========================================
 
+/**
+ * Edición parcial del perfil de un usuario por un admin: solo modifica los
+ * campos provistos y recalcula `profileComplete`.
+ *
+ * @param {string} targetUserId ObjectId del usuario a editar.
+ * @param {Object} data         Campos de perfil a actualizar (todos opcionales).
+ * @returns {Promise<Object>} Usuario actualizado (rol y barrio poblados).
+ * @throws {Error} 400 id/datos inválidos; 404 usuario no existe; 409 DNI duplicado.
+ */
 const updateUserProfileByAdmin = async (targetUserId, data) => {
   if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
     const error = new Error('El usuario enviado no es válido.');
@@ -318,6 +402,15 @@ const updateUserProfileByAdmin = async (targetUserId, data) => {
     throw error;
   }
 
+  if (updateFields.dni && updateFields.dni !== user.dni) {
+    const dniExists = await User.findOne({ dni: updateFields.dni, _id: { $ne: user._id } });
+    if (dniExists) {
+      const error = new Error('Ya existe un usuario con ese DNI.');
+      error.status = 409;
+      throw error;
+    }
+  }
+
   const merged = { ...user.toObject(), ...updateFields };
   updateFields.profileComplete = isProfileComplete(merged);
 
@@ -332,6 +425,16 @@ const updateUserProfileByAdmin = async (targetUserId, data) => {
 // 3. CAMBIAR ROL
 // ==========================================
 
+/**
+ * Cambia el rol de un usuario. No se puede modificar el propio rol, ni asignar
+ * `superAdmin`/`ai`, ni modificar a un superAdmin.
+ *
+ * @param {string} targetUserId ObjectId del usuario a modificar.
+ * @param {string} newRoleId    ObjectId del nuevo rol.
+ * @param {string} requesterId  ObjectId de quien solicita el cambio.
+ * @returns {Promise<Object>} Usuario actualizado (rol poblado).
+ * @throws {Error} 400 ids inválidos o mismo rol; 403 acción no permitida; 404 rol/usuario no existe.
+ */
 const changeUserRole = async (targetUserId, newRoleId, requesterId) => {
   const BLOCKED_ROLE_NAMES = ['superAdmin', 'ai'];
 
@@ -396,6 +499,15 @@ const changeUserRole = async (targetUserId, newRoleId, requesterId) => {
 // 3. BANEAR / DESBANEAR
 // ==========================================
 
+/**
+ * Banea o desbanea un usuario. No se puede banear a uno mismo ni a un superAdmin.
+ *
+ * @param {string} targetUserId ObjectId del usuario.
+ * @param {boolean} isBanned    Nuevo estado de baneo.
+ * @param {string} requesterId  ObjectId de quien solicita.
+ * @returns {Promise<Object>} Usuario actualizado (rol poblado).
+ * @throws {Error} 400 id inválido o estado sin cambios; 403 acción no permitida; 404 usuario no existe.
+ */
 const banUser = async (targetUserId, isBanned, requesterId) => {
   if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
     const error = new Error('El usuario enviado no es válido.');

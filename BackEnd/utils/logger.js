@@ -45,7 +45,15 @@ const redact = (value) => {
   return value;
 };
 
-// Loguea un error con contexto. `extra` suele ser { inputs } u { outputs }.
+/**
+ * Loguea un error con contexto, redactando campos sensibles. El stack solo se
+ * imprime en errores inesperados (status >= 500).
+ *
+ * @param {string} context Identificador del origen (ej. 'incidents.create').
+ * @param {Error}  error   Error capturado (puede tener `.status`).
+ * @param {Object} [extra={}] Contexto a loguear, normalmente `{ inputs }` u `{ outputs }`.
+ * @returns {void}
+ */
 const logError = (context, error, extra = {}) => {
   const ts = new Date().toISOString();
   const status = error?.status || 500;
@@ -59,9 +67,18 @@ const logError = (context, error, extra = {}) => {
   }
 };
 
-// Loguea + responde de forma consistente.
-// - 4xx: devuelve error.message (y details si los hay) — info útil para el usuario.
-// - 5xx: devuelve mensaje genérico al usuario, pero el detalle real queda en consola.
+/**
+ * Loguea el error y responde al cliente de forma consistente.
+ * - 4xx: devuelve `error.message` (y `details` si los hay) — info útil para el usuario.
+ * - 5xx: devuelve un mensaje genérico; el detalle real queda solo en consola.
+ *
+ * @param {import('express').Response} res Respuesta de Express.
+ * @param {Error} error Error capturado (puede tener `.status` y `.details`).
+ * @param {Object} [opts]
+ * @param {string} [opts.context='desconocido'] Identificador del origen para el log.
+ * @param {*} [opts.inputs] Datos de entrada a incluir en el log (se redactan).
+ * @returns {import('express').Response} La respuesta enviada.
+ */
 const respondError = (res, error, { context = 'desconocido', inputs } = {}) => {
   logError(context, error, inputs !== undefined ? { inputs } : {});
   const status = error?.status || 500;

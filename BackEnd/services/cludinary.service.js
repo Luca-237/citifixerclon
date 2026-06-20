@@ -1,4 +1,5 @@
-/// Subida y consultas a la api de Cludinaryconst cloudinary = require('cloudinary').v2;
+/// Subida y consultas a la api de Cloudinary
+const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
 
 // Configuración con tus credenciales (deben ir en tu .env)

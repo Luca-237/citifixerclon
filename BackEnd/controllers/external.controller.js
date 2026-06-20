@@ -1,4 +1,4 @@
-const { requestExternalOtp, validateExternalOtp, getExternalData } = require('../services/external.service');
+const { requestExternalOtp, validateExternalOtp, getExternalTable } = require('../services/external.service');
 const { respondError } = require('../utils/logger');
 
 const requestOtp = async (req, res) => {
@@ -12,15 +12,16 @@ const requestOtp = async (req, res) => {
 
 const getData = async (req, res) => {
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-  console.log(`[external] solicitud de datos — IP: ${ip} — ${new Date().toISOString()}`);
+  const { table } = req.params;
+  console.log(`[external] solicitud de datos — tabla: ${table} — IP: ${ip} — ${new Date().toISOString()}`);
   try {
     await validateExternalOtp(req.otpCode);
-    const data = await getExternalData();
-    console.log(`[external] datos entregados — IP: ${ip}`);
-    res.status(200).json({ success: true, data });
+    const data = await getExternalTable(table);
+    console.log(`[external] datos entregados — tabla: ${table} — IP: ${ip}`);
+    res.status(200).json({ success: true, table, data });
   } catch (error) {
-    // Dejamos rastro del rechazo con la IP que lo intentó (el OTP se redacta solo).
-    respondError(res, error, { context: 'external.getData', inputs: { ip, otpCode: req.otpCode } });
+    // Dejamos rastro del rechazo con la IP y la tabla que se intentó (el OTP se redacta solo).
+    respondError(res, error, { context: 'external.getData', inputs: { ip, table, otpCode: req.otpCode } });
   }
 };
 
