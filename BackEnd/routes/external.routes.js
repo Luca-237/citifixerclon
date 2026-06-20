@@ -8,7 +8,8 @@ const { requestOtp, getData } = require('../controllers/external.controller');
 // superAdmin solicita el OTP desde la app
 router.post('/request-otp', authMiddleware, verifyRole('superAdmin'), requestOtp);
 
-// Power BI consume los datos con API Key + OTP
-router.get('/data', externalAuth, getData);
+// Power BI consume una tabla por request con API Key + OTP.
+// Tablas válidas: groups | incidents | statuses | categories | users
+router.get('/data/:table', externalAuth, getData);
 
 module.exports = router;
