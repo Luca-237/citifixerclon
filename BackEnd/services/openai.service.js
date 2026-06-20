@@ -7,6 +7,22 @@ if (!process.env.GEMINI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+/**
+ * Analiza un reporte con Google Gemini (`gemini-2.5-flash`) en una sola pasada:
+ * valida el contenido, detecta emergencias, sugiere categoría y prioridad, y
+ * evalúa si pertenece a un grupo cercano existente (ver ADR-002 y ADR-004).
+ *
+ * NOTA: pese al nombre del archivo, NO usa OpenAI sino Gemini.
+ * Nunca lanza: ante cualquier fallo de la IA devuelve un objeto de contingencia
+ * (estado `pendiente`, `confianza: 0`) para no bloquear la creación del reporte.
+ *
+ * @param {string} title                      Título del nuevo reporte.
+ * @param {string} description                Descripción del nuevo reporte.
+ * @param {Array<Object>} [gruposCercanos=[]] Grupos cercanos (radio ~20 m) ya filtrados.
+ * @returns {Promise<Object>} Análisis: { categoriaSugerida, estadoSugerido,
+ *   isEmergency, prioridadSugerida, esDuplicado, idGrupoCandidato, confianza,
+ *   esRepresentanteMejor, justificacion }.
+ */
 const analizarIncidenteIA = async (title, description, gruposCercanos = []) => {
   try {
     console.log(`\n🤖 [IA START] Analizando nuevo incidente: "${title}"`);

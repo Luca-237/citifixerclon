@@ -1,10 +1,25 @@
 const Category = require('../models/category');
 const mongoose = require('mongoose');
 
+/**
+ * Lista categorías ordenadas por nombre, opcionalmente filtradas.
+ *
+ * @param {Object} [filter={}] Filtro Mongoose (ej. `{ isActive: true }`).
+ * @returns {Promise<Array>} Categorías encontradas.
+ */
 const getAllCategories = async (filter = {}) => {
   return await Category.find(filter).sort({ name: 1 });
 };
 
+/**
+ * Crea una categoría validando longitud de descripción y nombre único.
+ *
+ * @param {Object} data
+ * @param {string} data.name          Nombre de la categoría.
+ * @param {string} [data.description] Descripción (máx. 100 caracteres).
+ * @returns {Promise<Object>} Categoría creada.
+ * @throws {Error} 400 si la descripción excede 100 caracteres o el nombre ya existe.
+ */
 const createCategory = async ({ name, description }) => {
   if (description && description.trim().length > 100) {
     const error = new Error('La descripción no puede exceder los 100 caracteres.');
@@ -23,6 +38,17 @@ const createCategory = async ({ name, description }) => {
   return await category.save();
 };
 
+/**
+ * Actualiza una categoría. Solo modifica los campos provistos.
+ *
+ * @param {string} categoryId ObjectId de la categoría.
+ * @param {Object} data
+ * @param {string} [data.name]        Nuevo nombre (se valida unicidad).
+ * @param {string} [data.description] Nueva descripción (máx. 100 caracteres).
+ * @param {boolean} [data.isActive]   Nuevo estado activo/inactivo.
+ * @returns {Promise<Object>} Categoría actualizada.
+ * @throws {Error} 400 id inválido / descripción larga / nombre duplicado; 404 si no existe.
+ */
 const updateCategory = async (categoryId, { name, description, isActive }) => {
   if (!mongoose.Types.ObjectId.isValid(categoryId)) {
     const error = new Error('La categoría enviada no es válida.');
@@ -60,6 +86,13 @@ const updateCategory = async (categoryId, { name, description, isActive }) => {
   return await category.save();
 };
 
+/**
+ * Activa o desactiva una categoría (invierte `isActive`).
+ *
+ * @param {string} categoryId ObjectId de la categoría.
+ * @returns {Promise<Object>} Categoría actualizada.
+ * @throws {Error} 400 si el id no es válido, 404 si no existe.
+ */
 const toggleCategory = async (categoryId) => {
   if (!mongoose.Types.ObjectId.isValid(categoryId)) {
     const error = new Error('La categoría enviada no es válida.');

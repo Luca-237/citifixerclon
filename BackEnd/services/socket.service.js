@@ -3,8 +3,21 @@ const cookie = require('cookie');
 const User = require('../models/user');
 
 let _io = null;
+
+/**
+ * Devuelve la instancia de Socket.IO inicializada (o null si aún no se configuró).
+ *
+ * @returns {import('socket.io').Server|null} Instancia de Socket.IO.
+ */
 const getIo = () => _io;
 
+/**
+ * Inicializa Socket.IO: autentica cada conexión con el JWT de la cookie
+ * `auth_token` y une a cada usuario a su room personal `user_<id>`.
+ *
+ * @param {import('socket.io').Server} io Instancia de Socket.IO a configurar.
+ * @returns {void}
+ */
 const setupSocket = (io) => {
   _io = io;
   // Middleware de autenticación — corre antes de cada conexión

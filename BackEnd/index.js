@@ -5,6 +5,8 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const { clerkMiddleware } = require('@clerk/express');
 const { Server } = require('socket.io');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 const mongoConnect = require('./config/mongoConnet');
 const authRoutes = require('./routes/auth.routes');
 const incidentRoutes = require('./routes/incident.routes');
@@ -43,6 +45,9 @@ app.use(clerkMiddleware());
 app.get('/', (req, res) => {
   res.json({ message: 'API CityDent corriendo' });
 });
+
+// Documentación interactiva de la API (Swagger UI)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/auth', authRoutes);
 app.use('/api/incidents', incidentRoutes);
