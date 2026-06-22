@@ -3,7 +3,8 @@ import { Loader2, Mail, CheckCircle2 } from "lucide-react";
 import { sendVerificationCode, patchProfile, getNeighborhoods } from "@/services/api";
 import { Combobox } from "@/components/ui/combobox";
 
-const GEOREF = "https://apis.datos.gob.ar/georef/api";
+// Si estamos en Vercel, usamos nuestro proxy relativo. Si estamos en la PC, usamos el link directo.
+const GEOREF = import.meta.env.PROD ? "/georef" : "https://apis.datos.gob.ar/georef/api";
 
 const INPUT_CLS =
   "w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-celestito";
