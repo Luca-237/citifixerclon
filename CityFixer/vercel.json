@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/georef/(.*)",
+      "destination": "https://apis.datos.gob.ar/georef/api/$1"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "https://cityfixer-ngbl.onrender.com/api/$1"
     },
