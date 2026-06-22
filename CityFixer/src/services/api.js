@@ -2,7 +2,9 @@ import axios from "axios";
 
 // Cliente base — manda la cookie de sesión automáticamente en cada request
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  // Si estamos en Vercel (producción), usamos ruta relativa ("") para activar el proxy de vercel.json.
+  // Si estamos programando en la PC (desarrollo), usamos el localhost de tu .env.local.
+  baseURL: import.meta.env.PROD ? "" : import.meta.env.VITE_API_URL,
   withCredentials: true,
 });
 
